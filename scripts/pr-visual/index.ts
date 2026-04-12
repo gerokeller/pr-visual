@@ -169,7 +169,8 @@ async function run(): Promise<void> {
     const results = await captureAllVariants(
       scenarios,
       runtime.baseUrl,
-      runtime.outputDir
+      runtime.outputDir,
+      runtime.project
     );
     const totalScreenshots = results.reduce(
       (n, r) => n + r.screenshots.length,
