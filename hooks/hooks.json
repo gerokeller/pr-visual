@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$TOOL_INPUT\" | grep -q 'gh pr create'; then echo '>> Run /pr-visual to generate visual documentation for this PR'; fi"
+            "command": "if echo \"$TOOL_USE_INPUT\" | grep -q 'gh pr create'; then echo '>> Run /pr-visual to generate visual documentation for this PR'; fi"
           }
         ]
       }

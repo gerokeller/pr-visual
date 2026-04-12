@@ -34,7 +34,9 @@ Respond with ONLY valid JSON matching this schema:
 }`;
 
 async function callClaudeAPI(prompt: string): Promise<Scenario[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey =
+    process.env.ANTHROPIC_API_KEY ??
+    process.env.CLAUDE_PLUGIN_OPTION_ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.warn(
       "ANTHROPIC_API_KEY not set — falling back to static scenarios"
@@ -90,9 +92,27 @@ function getPRDescription(prNumber?: number): string | null {
   }
 }
 
+function detectDefaultBranch(): string {
+  // Try the remote HEAD symref first (works for any default branch name)
+  try {
+    const ref = execSync(
+      "git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || git rev-parse --verify --quiet refs/remotes/origin/main 2>/dev/null && echo main || echo master",
+      { encoding: "utf-8", timeout: 5_000 }
+    ).trim();
+    // symbolic-ref returns e.g. "refs/remotes/origin/main" — extract the branch name
+    if (ref.startsWith("refs/remotes/origin/")) {
+      return ref.replace("refs/remotes/origin/", "");
+    }
+    return ref;
+  } catch {
+    return "main";
+  }
+}
+
 function getGitDiff(): string | null {
   try {
-    const base = execSync("git merge-base HEAD main", {
+    const defaultBranch = detectDefaultBranch();
+    const base = execSync(`git merge-base HEAD ${defaultBranch}`, {
       encoding: "utf-8",
       timeout: 10_000,
     }).trim();

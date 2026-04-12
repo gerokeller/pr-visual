@@ -4,13 +4,16 @@
   "description": "Claude Code plugin — visual PR documentation with AI-generated Playwright scenarios, annotated screenshots, and captioned walkthrough videos.",
   "main": "scripts/pr-visual/index.ts",
   "bin": {
-    "pr-visual": "./scripts/pr-visual/index.ts"
+    "pr-visual": "./bin/pr-visual"
   },
   "files": [
+    "bin/",
     "scripts/",
     "skills/",
     "hooks/",
-    ".claude-plugin/"
+    ".claude-plugin/",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "pr-visual": "tsx scripts/pr-visual/index.ts",
@@ -27,17 +30,26 @@
     "pr",
     "visual",
     "screenshots",
-    "playwright"
+    "playwright",
+    "documentation"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Gero Keller",
+  "license": "MIT",
+  "homepage": "https://github.com/gerokeller/pr-visual",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gerokeller/pr-visual.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gerokeller/pr-visual/issues"
+  },
   "dependencies": {
     "playwright": "^1.59.1",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
   }

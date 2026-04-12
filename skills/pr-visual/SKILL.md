@@ -1,3 +1,8 @@
+---
+description: Capture visual PR documentation — annotated screenshots and walkthrough videos
+allowed-tools: Bash(npx *) Bash(gh *) Read
+---
+
 Capture visual PR documentation for the current pull request.
 
 This generates AI-driven Playwright scenarios from the PR description or git diff, then captures annotated screenshots (desktop 2x + mobile 3x, light + dark) and walkthrough videos with burned-in captions.
@@ -77,7 +82,7 @@ These environment variables are injected into every lifecycle step and the dev s
 
 ## Environment variables
 
-- `ANTHROPIC_API_KEY` — Required for AI-generated scenarios (falls back to static routes)
+- `ANTHROPIC_API_KEY` — Required for AI-generated scenarios (falls back to static routes). Can also be configured via plugin user config.
 - `PR_BODY` — Override PR body text for scenario generation
 - `PR_VISUAL_CONFIG` — Explicit path to config file (overrides auto-discovery)
 - `PR_VISUAL_NO_ISOLATE=1` — Skip worktree isolation, run in-place

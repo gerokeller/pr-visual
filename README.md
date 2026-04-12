@@ -7,13 +7,43 @@ Each run is isolated in a **git worktree** with its own port and **namespaced re
 ## Prerequisites
 
 - Node.js 18+
-- [ffmpeg](https://ffmpeg.org/) — `brew install ffmpeg`
+- [ffmpeg](https://ffmpeg.org/) — `brew install ffmpeg` (optional — needed for video captions)
 - [GitHub CLI](https://cli.github.com/) — `brew install gh`
 - Chromium (installed automatically via Playwright on `postinstall`)
 
 ## Installation
 
-### As a Claude Code plugin (recommended)
+### From Claude Code marketplace (recommended)
+
+```bash
+/plugin marketplace add gerokeller/pr-visual
+```
+
+Then install the plugin:
+
+```bash
+/plugin install pr-visual
+```
+
+To share with your team, add this to your project's `.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "pr-visual": {
+      "source": {
+        "source": "github",
+        "repo": "gerokeller/pr-visual"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "pr-visual@pr-visual": true
+  }
+}
+```
+
+### Via npm
 
 ```bash
 npm install -D pr-visual
@@ -24,22 +54,15 @@ Claude Code automatically discovers the plugin via `.claude-plugin/plugin.json` 
 - `/pr-visual` slash command
 - PostToolUse hook that reminds you to run it after `gh pr create`
 
-### Via a plugin marketplace
-
-Add this entry to your team's `marketplace.json`:
-
-```json
-{
-  "name": "pr-visual",
-  "source": { "source": "npm", "package": "pr-visual" }
-}
-```
-
-Then install via `/plugin install pr-visual` inside Claude Code.
-
 ## Quick start
 
 ### 1. Scaffold the config
+
+```
+/pr-visual init
+```
+
+Or via CLI:
 
 ```bash
 npx pr-visual init
@@ -75,7 +98,17 @@ Or manually:
 npx pr-visual
 ```
 
-## Project config
+## Configuration
+
+### Plugin settings
+
+The plugin accepts the following user configuration (set during plugin install or in settings):
+
+| Setting | Description |
+|---------|-------------|
+| `anthropic_api_key` | API key for AI-generated scenarios (stored in system keychain). Falls back to `ANTHROPIC_API_KEY` env var, then to static route capture. |
+
+### Project config
 
 `.pr-visual.config.ts` is the contract between your project and the recorder. It declares everything needed to bring up the application from a cold worktree:
 
@@ -135,7 +168,7 @@ Every lifecycle step and the dev server receive these environment variables auto
 | `PR_VISUAL_PORT` | Allocated port | Available for custom scripts |
 | `PR_VISUAL_ROOT_DIR` | `{{rootDir}}` | Available for custom scripts |
 
-This means `docker compose up -d postgres` in two parallel runs creates two independent Postgres containers (`pr-visual-17130...-a1b2c3-postgres-1` and `pr-visual-17130...-d4e5f6-postgres-1`), and each run's `docker compose down -v` only removes its own.
+This means `docker compose up -d postgres` in two parallel runs creates two independent Postgres containers, and each run's `docker compose down -v` only removes its own.
 
 ### Config reference
 
@@ -155,6 +188,7 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `worktreeDir` | `string` | `../.pr-visual-worktrees` | Where to create worktrees |
 | `installCommand` | `string` | `npm ci` | Install command for worktrees |
 | `outputDir` | `string` | `.pr-visual` | Output directory (relative to root) |
+| `routes` | `Array<string \| { path, label }>` | `["/"]` | Routes for static fallback capture |
 
 ### Minimal config examples
 
@@ -179,7 +213,19 @@ export default {
 };
 ```
 
-**Monorepo (custom cwd)**:
+**i18n site** (content at `/en`):
+```typescript
+export default {
+  devServer: { command: "npx next dev --port {{port}}" },
+  readiness: { path: "/en" },
+  routes: [
+    { path: "/en", label: "Homepage" },
+    { path: "/en/about", label: "About" },
+  ],
+};
+```
+
+**Monorepo** (custom cwd):
 ```typescript
 export default {
   devServer: { command: "turbo dev --filter=web", cwd: "apps/web" },
@@ -265,17 +311,56 @@ Multiple parallel runs get different worktrees, ports, and Docker project names 
 - Explicit cleanup in `finally` block for normal completion or exceptions
 - `npx pr-visual cleanup` as a manual recovery for hard crashes
 
+## Troubleshooting
+
+### Skills not appearing after install
+
+Run `/reload-plugins` to refresh the plugin list.
+
+### ffmpeg captioning fails
+
+The video captioning feature requires ffmpeg with either `libass` or `subtitles` filter support. If neither is available, the plugin gracefully skips captioning and returns the raw video.
+
+To get full captioning support:
+```bash
+brew install ffmpeg
+```
+
+### Screenshots show wrong page (i18n sites)
+
+If your site redirects `/` to a locale path (e.g. `/en`), configure the `routes` field in your `.pr-visual.config.ts`:
+
+```typescript
+export default {
+  readiness: { path: "/en" },
+  routes: [{ path: "/en", label: "Homepage" }],
+};
+```
+
+### `next: command not found` in worktree
+
+Use `npx` in your dev server command to resolve binaries from `node_modules`:
+
+```typescript
+export default {
+  devServer: { command: "npx next dev --port {{port}}" },
+};
+```
+
 ## Project structure
 
 ```
 .claude-plugin/
   plugin.json             # Plugin manifest
+  marketplace.json        # Plugin marketplace definition
 skills/pr-visual/
   SKILL.md                # Slash command definition
 hooks/
   hooks.json              # PostToolUse hook for gh pr create
+bin/
+  pr-visual               # CLI entrypoint
 scripts/pr-visual/
-  index.ts                # CLI entrypoint (run | init | cleanup)
+  index.ts                # CLI routing (run | init | cleanup)
   types.ts                # Shared types (ViewportConfig, ProjectConfig, RunContext, etc.)
   config.ts               # Config discovery, loading, template substitution
   worktree.ts             # Git worktree creation, port allocation, cleanup
@@ -292,4 +377,4 @@ scripts/pr-visual/
 
 ## License
 
-ISC
+MIT — see [LICENSE](LICENSE) for details.

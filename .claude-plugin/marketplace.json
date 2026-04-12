@@ -1,0 +1,23 @@
+{
+  "name": "pr-visual",
+  "description": "Visual PR documentation plugins",
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "id": "pr-visual",
+      "name": "PR Visual",
+      "description": "AI-generated screenshots and walkthrough videos for pull requests — desktop + mobile, light + dark, annotated with captions.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Gero Keller",
+        "url": "https://github.com/gerokeller"
+      },
+      "homepage": "https://github.com/gerokeller/pr-visual",
+      "repository": "https://github.com/gerokeller/pr-visual",
+      "license": "MIT",
+      "source": {
+        "path": ".."
+      }
+    }
+  ]
+}

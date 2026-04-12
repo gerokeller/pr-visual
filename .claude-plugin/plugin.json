@@ -1,7 +1,28 @@
 {
   "name": "pr-visual",
   "version": "1.0.0",
-  "description": "Visual PR documentation — AI-generated Playwright scenarios, annotated screenshots (desktop 2× + mobile 3×, light + dark), and walkthrough videos with burned-in captions.",
-  "skills": ["skills/pr-visual"],
-  "hooks": "hooks/hooks.json"
+  "description": "Visual PR documentation — AI-generated Playwright scenarios, annotated screenshots (desktop 2x + mobile 3x, light + dark), and walkthrough videos with burned-in captions.",
+  "author": {
+    "name": "Gero Keller",
+    "url": "https://github.com/gerokeller"
+  },
+  "homepage": "https://github.com/gerokeller/pr-visual",
+  "repository": "https://github.com/gerokeller/pr-visual",
+  "license": "MIT",
+  "keywords": [
+    "claude-code-plugin",
+    "pr",
+    "visual",
+    "screenshots",
+    "playwright",
+    "documentation"
+  ],
+  "skills": ["./skills/pr-visual"],
+  "hooks": "./hooks/hooks.json",
+  "userConfig": {
+    "anthropic_api_key": {
+      "description": "Anthropic API key for AI-generated scenarios (falls back to static route capture without it)",
+      "sensitive": true
+    }
+  }
 }
