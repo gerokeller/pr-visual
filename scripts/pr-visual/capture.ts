@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import type {
   ViewportConfig,
   ColorScheme,
+  ProjectConfig,
   Scenario,
   ScenarioStep,
   CaptionTiming,
@@ -11,6 +12,7 @@ import type {
   ScreenshotResult,
 } from "./types.js";
 import { VIEWPORTS, COLOR_SCHEMES } from "./types.js";
+import { resolveDesktopViewport } from "./quality.js";
 
 async function executeStep(
   page: Page,
@@ -156,17 +158,20 @@ async function captureScenario(
 export async function captureAllVariants(
   scenarios: Scenario[],
   baseUrl: string,
-  outputDir: string
+  outputDir: string,
+  projectConfig?: ProjectConfig
 ): Promise<CaptureResult[]> {
   const browser = await chromium.launch({ headless: true });
   const results: CaptureResult[] = [];
 
   try {
     for (const scenario of scenarios) {
-      for (const viewport of Object.values(VIEWPORTS)) {
+      const desktopViewport = resolveDesktopViewport(scenario, projectConfig);
+      const viewports: ViewportConfig[] = [desktopViewport, VIEWPORTS.mobile];
+      for (const viewport of viewports) {
         for (const colorScheme of COLOR_SCHEMES) {
           console.log(
-            `  Capturing: ${scenario.name} — ${viewport.name} — ${colorScheme}`
+            `  Capturing: ${scenario.name} — ${viewport.name} ${viewport.width}x${viewport.height}@${viewport.deviceScaleFactor}x — ${colorScheme}`
           );
           const result = await captureScenario(
             browser,

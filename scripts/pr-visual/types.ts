@@ -7,13 +7,31 @@ export interface ViewportConfig {
   isMobile?: boolean;
 }
 
+/** Logical viewport dimensions for each named quality preset.
+ *  Final MP4 dimensions are width × deviceScaleFactor. */
+export const QUALITY_PRESETS = {
+  "720p": { width: 1280, height: 720 },
+  "1080p": { width: 1920, height: 1080 },
+  "2k": { width: 2560, height: 1440 },
+  "4k": { width: 3840, height: 2160 },
+} as const;
+
+export type QualityPreset = keyof typeof QUALITY_PRESETS;
+
+export const QUALITY_PRESET_NAMES = Object.keys(
+  QUALITY_PRESETS
+) as QualityPreset[];
+
+/** Default desktop viewport when no quality preset or override is set. */
+export const DEFAULT_DESKTOP_VIEWPORT: ViewportConfig = {
+  name: "desktop",
+  width: 1440,
+  height: 900,
+  deviceScaleFactor: 2,
+};
+
 export const VIEWPORTS: Record<string, ViewportConfig> = {
-  desktop: {
-    name: "desktop",
-    width: 1440,
-    height: 900,
-    deviceScaleFactor: 2,
-  },
+  desktop: DEFAULT_DESKTOP_VIEWPORT,
   mobile: {
     name: "mobile",
     width: 390,
@@ -25,6 +43,13 @@ export const VIEWPORTS: Record<string, ViewportConfig> = {
   },
 };
 
+/** Explicit viewport override on a scenario. */
+export interface ScenarioViewport {
+  width: number;
+  height: number;
+  deviceScaleFactor?: number;
+}
+
 export type ColorScheme = "light" | "dark";
 
 export const COLOR_SCHEMES: ColorScheme[] = ["light", "dark"];
@@ -33,6 +58,10 @@ export interface Scenario {
   name: string;
   description: string;
   steps: ScenarioStep[];
+  /** Quality preset — sets the desktop logical viewport for this scenario. */
+  quality?: QualityPreset;
+  /** Explicit desktop viewport override. Ignored if `quality` is set. */
+  viewport?: ScenarioViewport;
 }
 
 export interface ScenarioStep {
@@ -155,6 +184,11 @@ export interface ProjectConfig {
    *  Each entry is a path (e.g. "/en", "/en/about") with an optional label.
    *  @default ["/"] */
   routes?: Array<string | { path: string; label: string }>;
+
+  /** Project-wide default quality preset for desktop capture.
+   *  Overridden by `Scenario.quality`, `Scenario.viewport`, or the
+   *  `PR_VISUAL_QUALITY` env var. */
+  quality?: QualityPreset;
 }
 
 export interface LifecycleStep {

@@ -189,6 +189,7 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `installCommand` | `string` | `npm ci` | Install command for worktrees |
 | `outputDir` | `string` | `.pr-visual` | Output directory (relative to root) |
 | `routes` | `Array<string \| { path, label }>` | `["/"]` | Routes for static fallback capture |
+| `quality` | `"720p" \| "1080p" \| "2k" \| "4k"` | — | Desktop quality preset (see [Quality presets](#quality-presets)) |
 
 ### Minimal config examples
 
@@ -235,6 +236,66 @@ export default {
 };
 ```
 
+## Quality presets
+
+By default the desktop capture runs at 1440×900 @2x. You can bump this to a named preset to get higher-resolution video and screenshots. The preset sets the **logical viewport** (CSS pixels); final output dimensions are `viewport × deviceScaleFactor` (DSF stays at 2 by default).
+
+| Preset | Viewport | Output (DSF=2) |
+|--------|----------|----------------|
+| `720p` | 1280×720 | 2560×1440 |
+| `1080p` | 1920×1080 | 3840×2160 |
+| `2k` | 2560×1440 | 5120×2880 |
+| `4k` | 3840×2160 | 7680×4320 |
+
+Mobile capture is not affected by quality presets.
+
+**Project-wide default** in `.pr-visual.config.ts`:
+
+```typescript
+export default {
+  devServer: { command: "npm run dev" },
+  quality: "1080p",
+} satisfies ProjectConfig;
+```
+
+**Per-scenario override** (AI-generated or hand-authored scenarios):
+
+```ts
+{
+  name: "Checkout flow",
+  description: "...",
+  quality: "2k",       // preset wins over viewport
+  steps: [ /* ... */ ],
+}
+```
+
+**Explicit viewport override** (when a preset doesn't fit):
+
+```ts
+{
+  name: "Tablet layout",
+  description: "...",
+  viewport: { width: 1024, height: 768, deviceScaleFactor: 2 },
+  steps: [ /* ... */ ],
+}
+```
+
+**One-off env override** — useful in CI or for spot checks:
+
+```bash
+PR_VISUAL_QUALITY=4k npx pr-visual
+```
+
+**Precedence** (highest wins):
+
+1. `PR_VISUAL_QUALITY` env var
+2. `scenario.quality`
+3. `scenario.viewport`
+4. `projectConfig.quality`
+5. Built-in default (1440×900 @2x)
+
+An unknown preset value (env, scenario, or project) fails hard with a clear error.
+
 ## CLI commands
 
 ```bash
@@ -270,6 +331,7 @@ The recorder also registers signal handlers for SIGINT and SIGTERM, so a normal 
 | `PR_BODY` | — | Override PR body text for scenario generation |
 | `PR_VISUAL_CONFIG` | — | Explicit path to config file |
 | `PR_VISUAL_NO_ISOLATE` | — | Set to `1` to skip worktree isolation |
+| `PR_VISUAL_QUALITY` | — | Desktop quality preset override: `720p`, `1080p`, `2k`, `4k`. Takes precedence over scenario and project config. |
 
 ## How it works
 
