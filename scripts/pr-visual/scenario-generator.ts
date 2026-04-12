@@ -158,28 +158,34 @@ function buildStaticScenarios(
         action: "navigate" as const,
         url: new URL(route.path, baseUrl).toString(),
         caption: `Navigate to ${route.label}`,
+        pacing: "quick" as const,
       },
       {
         action: "wait" as const,
         duration: 2000,
         caption: "Wait for page to fully load",
+        pacing: "quick" as const,
       },
       {
         action: "screenshot" as const,
         caption: `${route.label} — full page view`,
+        pacing: "quick" as const,
       },
       {
         action: "scroll" as const,
         caption: "Scroll down to see more content",
+        pacing: "quick" as const,
       },
       {
         action: "wait" as const,
         duration: 1000,
         caption: "Wait for lazy content to load",
+        pacing: "quick" as const,
       },
       {
         action: "screenshot" as const,
         caption: `${route.label} — below the fold`,
+        pacing: "quick" as const,
       },
     ],
   }));

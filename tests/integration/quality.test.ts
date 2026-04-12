@@ -46,20 +46,26 @@ function staticScenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
     name: "quality-probe",
     description: "Probe desktop viewport dimensions for quality presets",
+    // Use quick pacing so the full matrix (2 viewports × 2 color schemes)
+    // stays inside the per-test timeout; dimensions are what we're asserting,
+    // not holds.
     steps: [
       {
         action: "navigate",
         url: FIXTURE_URL,
         caption: "Load the fixture",
+        pacing: "quick",
       },
       {
         action: "wait",
         duration: 200,
         caption: "Settle",
+        pacing: "quick",
       },
       {
         action: "screenshot",
         caption: "Desktop capture",
+        pacing: "quick",
       },
     ],
     ...overrides,
@@ -96,7 +102,7 @@ describe("quality presets — desktop screenshot dimensions", () => {
     const dims = await getPngDimensions(ss!.rawPath);
     expect(dims.width).toBe(QUALITY_PRESETS["720p"].width * 2);
     expect(dims.height).toBe(QUALITY_PRESETS["720p"].height * 2);
-  }, 30_000);
+  }, 60_000);
 
   it("project-level quality applies when scenario omits quality", async () => {
     const results = await captureAllVariants(
@@ -111,7 +117,7 @@ describe("quality presets — desktop screenshot dimensions", () => {
     const desktop = results.find((r) => r.viewport.name === "desktop");
     expect(desktop!.viewport.width).toBe(QUALITY_PRESETS["1080p"].width);
     expect(desktop!.viewport.height).toBe(QUALITY_PRESETS["1080p"].height);
-  }, 30_000);
+  }, 60_000);
 
   it("scenario-level viewport override applies", async () => {
     const scenario = staticScenario({
@@ -126,7 +132,7 @@ describe("quality presets — desktop screenshot dimensions", () => {
     expect(desktop!.viewport.width).toBe(1024);
     expect(desktop!.viewport.height).toBe(768);
     expect(desktop!.viewport.deviceScaleFactor).toBe(2);
-  }, 30_000);
+  }, 60_000);
 
   it("mobile viewport is unaffected by quality preset", async () => {
     const scenario = staticScenario({ quality: "4k" });
@@ -159,5 +165,5 @@ describe("quality presets — desktop screenshot dimensions", () => {
       if (prev === undefined) delete process.env.PR_VISUAL_QUALITY;
       else process.env.PR_VISUAL_QUALITY = prev;
     }
-  }, 30_000);
+  }, 60_000);
 });
