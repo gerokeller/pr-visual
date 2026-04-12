@@ -1,0 +1,7 @@
+{
+  "name": "pr-visual",
+  "version": "1.0.0",
+  "description": "Visual PR documentation — AI-generated Playwright scenarios, annotated screenshots (desktop 2× + mobile 3×, light + dark), and walkthrough videos with burned-in captions.",
+  "skills": ["skills/pr-visual"],
+  "hooks": "hooks/hooks.json"
+}
