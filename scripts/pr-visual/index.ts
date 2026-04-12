@@ -159,7 +159,8 @@ async function run(): Promise<void> {
     const scenarios = await generateScenarios(
       runtime.baseUrl,
       runtime.prNumber,
-      runtime.prBody
+      runtime.prBody,
+      runtime.project
     );
     console.log(`  Generated ${scenarios.length} scenario(s)`);
 

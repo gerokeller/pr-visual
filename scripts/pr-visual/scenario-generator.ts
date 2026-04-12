@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import type { Scenario } from "./types.js";
+import type { ProjectConfig, Scenario } from "./types.js";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-sonnet-4-20250514";
@@ -106,35 +106,70 @@ function getGitDiff(): string | null {
   }
 }
 
-function buildStaticScenarios(baseUrl: string): Scenario[] {
-  return [
-    {
-      name: "Homepage",
-      description: "Capture the main landing page",
-      steps: [
-        {
-          action: "navigate" as const,
-          url: baseUrl,
-          caption: "Navigate to homepage",
-        },
-        {
-          action: "wait" as const,
-          duration: 1000,
-          caption: "Wait for page to fully load",
-        },
-        {
-          action: "screenshot" as const,
-          caption: "Homepage — full page view",
-        },
-      ],
-    },
-  ];
+function normalizeRoutes(
+  config?: ProjectConfig
+): Array<{ path: string; label: string }> {
+  const raw = config?.routes;
+  if (raw && raw.length > 0) {
+    return raw.map((r) =>
+      typeof r === "string" ? { path: r, label: r } : r
+    );
+  }
+  // Fall back to readiness path (usually the real homepage for i18n sites),
+  // then plain "/"
+  const readinessPath = config?.readiness?.path;
+  if (readinessPath && readinessPath !== "/") {
+    return [{ path: readinessPath, label: readinessPath }];
+  }
+  return [{ path: "/", label: "Homepage" }];
+}
+
+function buildStaticScenarios(
+  baseUrl: string,
+  config?: ProjectConfig
+): Scenario[] {
+  const routes = normalizeRoutes(config);
+
+  return routes.map((route) => ({
+    name: route.label,
+    description: `Capture ${route.label}`,
+    steps: [
+      {
+        action: "navigate" as const,
+        url: new URL(route.path, baseUrl).toString(),
+        caption: `Navigate to ${route.label}`,
+      },
+      {
+        action: "wait" as const,
+        duration: 2000,
+        caption: "Wait for page to fully load",
+      },
+      {
+        action: "screenshot" as const,
+        caption: `${route.label} — full page view`,
+      },
+      {
+        action: "scroll" as const,
+        caption: "Scroll down to see more content",
+      },
+      {
+        action: "wait" as const,
+        duration: 1000,
+        caption: "Wait for lazy content to load",
+      },
+      {
+        action: "screenshot" as const,
+        caption: `${route.label} — below the fold`,
+      },
+    ],
+  }));
 }
 
 export async function generateScenarios(
   baseUrl: string,
   prNumber?: number,
-  prBody?: string
+  prBody?: string,
+  config?: ProjectConfig
 ): Promise<Scenario[]> {
   // 1. Try PR description
   const description = prBody ?? getPRDescription(prNumber);
@@ -155,7 +190,7 @@ export async function generateScenarios(
     if (scenarios.length > 0) return scenarios;
   }
 
-  // 3. Fall back to static scenarios
+  // 3. Fall back to static scenarios using config routes
   console.log("Using static route-based scenarios");
-  return buildStaticScenarios(baseUrl);
+  return buildStaticScenarios(baseUrl, config);
 }

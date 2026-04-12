@@ -73,42 +73,60 @@ export async function burnCaptions(
   const assContent = generateAssSubtitles(captions, videoWidth, videoHeight);
   fs.writeFileSync(assPath, assContent, "utf-8");
 
-  // Burn subtitles with ffmpeg
-  const ffmpegCmd = [
-    "ffmpeg",
-    "-y",
-    "-i",
-    JSON.stringify(videoPath),
-    "-vf",
-    `ass=${JSON.stringify(assPath).slice(1, -1)}`,
-    "-c:v libx264",
-    "-profile:v high",
-    "-level 4.2",
-    "-preset slow",
-    "-crf 18",
-    "-tune stillimage",
-    "-pix_fmt yuv420p",
-    "-movflags +faststart",
-    "-an",
-    JSON.stringify(outputPath),
-  ].join(" ");
+  // Escape the path for ffmpeg filter syntax — colons and backslashes need escaping
+  const escapedAssPath = assPath
+    .replace(/\\/g, "\\\\")
+    .replace(/:/g, "\\:")
+    .replace(/'/g, "'\\''");
 
-  try {
-    execSync(ffmpegCmd, {
-      stdio: "pipe",
-      timeout: 120_000,
-    });
-    console.log(`    Video captioned: ${path.basename(outputPath)}`);
-  } catch (err) {
-    const error = err as Error & { stderr?: Buffer };
-    console.warn(
-      `    ffmpeg failed: ${error.stderr?.toString() ?? error.message}`
-    );
-    return videoPath; // Return original if captioning fails
+  // Try the `ass` filter first (requires libass), fall back to `subtitles` filter
+  const filters = [
+    `ass='${escapedAssPath}'`,
+    `subtitles='${escapedAssPath}'`,
+  ];
+
+  let captioned = false;
+  for (const vf of filters) {
+    const ffmpegCmd = [
+      "ffmpeg",
+      "-y",
+      "-i",
+      `'${videoPath}'`,
+      "-vf",
+      vf,
+      "-c:v libx264",
+      "-profile:v high",
+      "-level 4.2",
+      "-preset slow",
+      "-crf 18",
+      "-tune stillimage",
+      "-pix_fmt yuv420p",
+      "-movflags +faststart",
+      "-an",
+      `'${outputPath}'`,
+    ].join(" ");
+
+    try {
+      execSync(ffmpegCmd, {
+        stdio: "pipe",
+        timeout: 120_000,
+      });
+      console.log(`    Video captioned: ${path.basename(outputPath)}`);
+      captioned = true;
+      break;
+    } catch {
+      // Try next filter
+    }
+  }
+
+  if (!captioned) {
+    console.warn(`    ffmpeg captioning failed — returning original video`);
+    try { fs.unlinkSync(assPath); } catch { /* ignore */ }
+    return videoPath;
   }
 
   // Clean up intermediate ASS file
-  fs.unlinkSync(assPath);
+  try { fs.unlinkSync(assPath); } catch { /* ignore */ }
 
   return outputPath;
 }

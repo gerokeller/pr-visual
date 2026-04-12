@@ -150,6 +150,11 @@ export interface ProjectConfig {
   /** Dependencies to install in the worktree.
    *  @default "npm ci" */
   installCommand?: string;
+
+  /** Routes to capture when falling back to static scenarios.
+   *  Each entry is a path (e.g. "/en", "/en/about") with an optional label.
+   *  @default ["/"] */
+  routes?: Array<string | { path: string; label: string }>;
 }
 
 export interface LifecycleStep {
