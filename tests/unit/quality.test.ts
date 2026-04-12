@@ -141,7 +141,7 @@ describe("resolveDesktopViewport()", () => {
       expect(() =>
         resolveDesktopViewport(
           makeScenario(),
-          { quality: "wat" as never } as ProjectConfig,
+          { quality: "wat" as never } as unknown as ProjectConfig,
           {}
         )
       ).toThrowError(/Invalid projectConfig\.quality="wat"/);

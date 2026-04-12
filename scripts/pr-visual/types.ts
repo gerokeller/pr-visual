@@ -64,6 +64,10 @@ export interface Scenario {
   viewport?: ScenarioViewport;
 }
 
+export type Pacing = "quick" | "normal" | "slow" | "dramatic";
+
+export const PACING_MODES: Pacing[] = ["quick", "normal", "slow", "dramatic"];
+
 export interface ScenarioStep {
   action: "navigate" | "click" | "type" | "wait" | "scroll" | "screenshot";
   selector?: string;
@@ -71,6 +75,9 @@ export interface ScenarioStep {
   url?: string;
   duration?: number;
   caption: string;
+  /** Pacing hint governing the post-action hold time.
+   *  @default "normal" */
+  pacing?: Pacing;
 }
 
 export interface CaptionTiming {
@@ -189,6 +196,16 @@ export interface ProjectConfig {
    *  Overridden by `Scenario.quality`, `Scenario.viewport`, or the
    *  `PR_VISUAL_QUALITY` env var. */
   quality?: QualityPreset;
+
+  /** Adaptive pacing configuration. */
+  pacing?: PacingConfig;
+}
+
+export interface PacingConfig {
+  /** Reading speed in words per second used for caption hold estimation.
+   *  Captions of 6 words or fewer get a +0.6 w/s bonus.
+   *  @default 3.2 */
+  wordsPerSecond?: number;
 }
 
 export interface LifecycleStep {

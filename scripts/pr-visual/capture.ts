@@ -13,6 +13,12 @@ import type {
 } from "./types.js";
 import { VIEWPORTS, COLOR_SCHEMES } from "./types.js";
 import { resolveDesktopViewport } from "./quality.js";
+import {
+  advancePacingContext,
+  computeAdaptiveHoldMs,
+  createPacingContext,
+  dramaticPreSettleMs,
+} from "./pacing.js";
 
 async function executeStep(
   page: Page,
@@ -66,7 +72,8 @@ async function captureScenario(
   viewport: ViewportConfig,
   colorScheme: ColorScheme,
   baseUrl: string,
-  outputDir: string
+  outputDir: string,
+  projectConfig?: ProjectConfig
 ): Promise<CaptureResult> {
   const contextDir = path.join(
     outputDir,
@@ -96,21 +103,21 @@ async function captureScenario(
   const captions: CaptionTiming[] = [];
   const startTime = Date.now();
   let screenshotIndex = 0;
+  let pacingContext = createPacingContext();
+  const wordsPerSecond = projectConfig?.pacing?.wordsPerSecond;
 
   for (const step of scenario.steps) {
+    const preSettleMs = dramaticPreSettleMs(step);
+    if (preSettleMs > 0) {
+      await page.waitForTimeout(preSettleMs);
+    }
+
     const stepStartMs = Date.now() - startTime;
 
     await executeStep(page, step, baseUrl);
 
     const currentRoute = new URL(page.url()).pathname;
     const stepEndMs = Date.now() - startTime;
-
-    captions.push({
-      text: step.caption,
-      route: currentRoute,
-      startMs: stepStartMs,
-      endMs: stepEndMs + 2000, // Caption lingers 2s after step completes
-    });
 
     if (step.action === "screenshot" || step.action === "navigate") {
       await page.waitForTimeout(500); // Brief settle time
@@ -127,6 +134,23 @@ async function captureScenario(
       });
       screenshotIndex++;
     }
+
+    const holdMs = computeAdaptiveHoldMs(
+      step.caption,
+      step,
+      pacingContext,
+      wordsPerSecond !== undefined ? { wordsPerSecond } : {}
+    );
+    await page.waitForTimeout(holdMs);
+
+    captions.push({
+      text: step.caption,
+      route: currentRoute,
+      startMs: stepStartMs,
+      endMs: stepEndMs + holdMs,
+    });
+
+    pacingContext = advancePacingContext(pacingContext, step);
   }
 
   // Close context to finalize video
@@ -179,7 +203,8 @@ export async function captureAllVariants(
             viewport,
             colorScheme,
             baseUrl,
-            outputDir
+            outputDir,
+            projectConfig
           );
           results.push(result);
         }

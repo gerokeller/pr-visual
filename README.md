@@ -190,6 +190,7 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `outputDir` | `string` | `.pr-visual` | Output directory (relative to root) |
 | `routes` | `Array<string \| { path, label }>` | `["/"]` | Routes for static fallback capture |
 | `quality` | `"720p" \| "1080p" \| "2k" \| "4k"` | — | Desktop quality preset (see [Quality presets](#quality-presets)) |
+| `pacing.wordsPerSecond` | `number` | `3.2` | Reading speed used by [adaptive pacing](#adaptive-pacing) |
 
 ### Minimal config examples
 
@@ -295,6 +296,43 @@ PR_VISUAL_QUALITY=4k npx pr-visual
 5. Built-in default (1440×900 @2x)
 
 An unknown preset value (env, scenario, or project) fails hard with a clear error.
+
+## Adaptive pacing
+
+Each step holds on-screen long enough for viewers to read the caption and absorb the change, scaled by an explicit `pacing` hint. The hold is computed from the caption's reading time, the action type (first-navigation gets extra breathing room; `type` scales with value length), a transition cushion when the action changes, and the pacing mode.
+
+**Modes** (multiplier / floor / cap in ms):
+
+| Mode | Multiplier | Floor | Cap |
+|------|-----------|-------|-----|
+| `quick` | 0.6× | 900 | 4000 |
+| `normal` *(default)* | 1.0× | 1700 | 8000 |
+| `slow` | 1.5× | 2200 | 10000 |
+| `dramatic` | 2.0× | 3200 | 12000 |
+
+`dramatic` also inserts an 800ms pre-action settle before the step fires, to build anticipation.
+
+**Per-step**:
+
+```ts
+{
+  action: "click",
+  selector: "#checkout",
+  caption: "Confirm the order",
+  pacing: "dramatic",   // the final beat — let it land
+}
+```
+
+**Project-level reading speed** in `.pr-visual.config.ts`:
+
+```typescript
+export default {
+  devServer: { command: "npm run dev" },
+  pacing: { wordsPerSecond: 2.8 },   // slower — for non-native audiences
+} satisfies ProjectConfig;
+```
+
+Captions of six words or fewer are read proportionally faster (+0.6 w/s) so short beats don't linger.
 
 ## CLI commands
 

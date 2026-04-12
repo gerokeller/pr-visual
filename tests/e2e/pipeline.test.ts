@@ -54,7 +54,7 @@ describe("e2e pipeline", () => {
     expect(scenarios[0]!.steps.length).toBeGreaterThan(0);
   });
 
-  it("captures screenshots across all viewport/colorScheme variants", async () => {
+  it("captures screenshots across all viewport/colorScheme variants", { timeout: 90_000 }, async () => {
     const scenarios = await generateScenarios(FIXTURE_URL);
     const results = await captureAllVariants(scenarios, FIXTURE_URL, outputDir);
 
@@ -90,7 +90,7 @@ describe("e2e pipeline", () => {
     }
   });
 
-  it("annotates screenshots with sidebar producing valid WebP files", async () => {
+  it("annotates screenshots with sidebar producing valid WebP files", { timeout: 90_000 }, async () => {
     const scenarios = await generateScenarios(FIXTURE_URL);
     const results = await captureAllVariants(scenarios, FIXTURE_URL, outputDir);
     const annotated = await annotateScreenshots(results);
