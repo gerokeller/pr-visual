@@ -116,10 +116,13 @@ function getGitDiff(): string | null {
       encoding: "utf-8",
       timeout: 10_000,
     }).trim();
-    const diff = execSync(`git diff ${base}...HEAD -- '*.tsx' '*.jsx' '*.vue' '*.svelte' '*.html'`, {
-      encoding: "utf-8",
-      timeout: 30_000,
-    });
+    const diff = execSync(
+      `git diff ${base}...HEAD -- '*.tsx' '*.jsx' '*.vue' '*.svelte' '*.html'`,
+      {
+        encoding: "utf-8",
+        timeout: 30_000,
+      }
+    );
     return diff.trim() || null;
   } catch {
     return null;
@@ -131,9 +134,7 @@ function normalizeRoutes(
 ): Array<{ path: string; label: string }> {
   const raw = config?.routes;
   if (raw && raw.length > 0) {
-    return raw.map((r) =>
-      typeof r === "string" ? { path: r, label: r } : r
-    );
+    return raw.map((r) => (typeof r === "string" ? { path: r, label: r } : r));
   }
   // Fall back to readiness path (usually the real homepage for i18n sites),
   // then plain "/"

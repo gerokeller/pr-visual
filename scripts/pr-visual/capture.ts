@@ -1,4 +1,9 @@
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "playwright";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import type {
@@ -70,17 +75,14 @@ async function executeStep(
       await page.waitForTimeout(step.duration ?? 1000);
       break;
     case "scroll":
-      await page.evaluate(
-        (sel) => {
-          const el = sel ? document.querySelector(sel) : window;
-          if (el instanceof Window) {
-            el.scrollBy(0, 400);
-          } else if (el) {
-            el.scrollBy(0, 400);
-          }
-        },
-        step.selector ?? null
-      );
+      await page.evaluate((sel) => {
+        const el = sel ? document.querySelector(sel) : window;
+        if (el instanceof Window) {
+          el.scrollBy(0, 400);
+        } else if (el) {
+          el.scrollBy(0, 400);
+        }
+      }, step.selector ?? null);
       await page.waitForTimeout(300);
       break;
     case "highlight":
@@ -112,10 +114,7 @@ async function captureScenario(
   outputDir: string,
   projectConfig?: ProjectConfig
 ): Promise<CaptureResult> {
-  const contextDir = path.join(
-    outputDir,
-    `${viewport.name}-${colorScheme}`
-  );
+  const contextDir = path.join(outputDir, `${viewport.name}-${colorScheme}`);
   fs.mkdirSync(contextDir, { recursive: true });
 
   const videoWidth = viewport.width * viewport.deviceScaleFactor;

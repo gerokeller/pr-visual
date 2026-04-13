@@ -9,7 +9,6 @@ import {
   removeWorktree,
   listActiveWorktrees,
   copyArtifacts,
-  getRepoRoot,
 } from "../../scripts/pr-visual/worktree.js";
 import type { ProjectConfig } from "../../scripts/pr-visual/types.js";
 
@@ -17,9 +16,7 @@ import type { ProjectConfig } from "../../scripts/pr-visual/types.js";
 let testRepoDir: string;
 
 beforeAll(() => {
-  testRepoDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "pr-visual-wt-test-")
-  );
+  testRepoDir = fs.mkdtempSync(path.join(os.tmpdir(), "pr-visual-wt-test-"));
   execSync("git init", { cwd: testRepoDir, stdio: "pipe" });
   execSync("git config user.email test@test.com", {
     cwd: testRepoDir,
@@ -137,9 +134,7 @@ describe("listActiveWorktrees()", () => {
 
 describe("copyArtifacts()", () => {
   it("recursively copies files", () => {
-    const src = fs.mkdtempSync(
-      path.join(os.tmpdir(), "pr-visual-copy-src-")
-    );
+    const src = fs.mkdtempSync(path.join(os.tmpdir(), "pr-visual-copy-src-"));
     const dest = path.join(os.tmpdir(), `pr-visual-copy-dest-${Date.now()}`);
 
     // Create nested structure

@@ -38,9 +38,7 @@ afterAll(() => {
   if (outputDir) fs.rmSync(outputDir, { recursive: true, force: true });
 });
 
-function scenarioWithPacing(
-  pacing: "quick" | "dramatic"
-): Scenario {
+function scenarioWithPacing(pacing: "quick" | "dramatic"): Scenario {
   return {
     name: `pacing-${pacing}`,
     description: `Probe pacing=${pacing}`,
@@ -61,39 +59,35 @@ function scenarioWithPacing(
 }
 
 describe("adaptive pacing — end-to-end timing", () => {
-  it(
-    "dramatic pacing produces a visibly longer run than quick for the same scenario",
-    async () => {
-      const quickResults = await captureAllVariants(
-        [scenarioWithPacing("quick")],
-        FIXTURE_URL,
-        outputDir
-      );
-      const dramaticResults = await captureAllVariants(
-        [scenarioWithPacing("dramatic")],
-        FIXTURE_URL,
-        outputDir
-      );
+  it("dramatic pacing produces a visibly longer run than quick for the same scenario", async () => {
+    const quickResults = await captureAllVariants(
+      [scenarioWithPacing("quick")],
+      FIXTURE_URL,
+      outputDir
+    );
+    const dramaticResults = await captureAllVariants(
+      [scenarioWithPacing("dramatic")],
+      FIXTURE_URL,
+      outputDir
+    );
 
-      // Compare desktop+light variants for both (same (viewport, colorScheme)
-      // so Playwright overhead is symmetrical).
-      const quickDesktop = quickResults.find(
-        (r) => r.viewport.name === "desktop" && r.colorScheme === "light"
-      )!;
-      const dramaticDesktop = dramaticResults.find(
-        (r) => r.viewport.name === "desktop" && r.colorScheme === "light"
-      )!;
+    // Compare desktop+light variants for both (same (viewport, colorScheme)
+    // so Playwright overhead is symmetrical).
+    const quickDesktop = quickResults.find(
+      (r) => r.viewport.name === "desktop" && r.colorScheme === "light"
+    )!;
+    const dramaticDesktop = dramaticResults.find(
+      (r) => r.viewport.name === "desktop" && r.colorScheme === "light"
+    )!;
 
-      const quickTotalMs =
-        quickDesktop.captions[quickDesktop.captions.length - 1]!.endMs;
-      const dramaticTotalMs =
-        dramaticDesktop.captions[dramaticDesktop.captions.length - 1]!.endMs;
+    const quickTotalMs =
+      quickDesktop.captions[quickDesktop.captions.length - 1]!.endMs;
+    const dramaticTotalMs =
+      dramaticDesktop.captions[dramaticDesktop.captions.length - 1]!.endMs;
 
-      // Two steps: quick floor 900 × 2 = 1800ms of holds.
-      //            dramatic floor 3200 × 2 = 6400ms of holds + 2× 800ms pre-settle.
-      // Expected delta is at least ~5s; assert a conservative 3s to avoid flake.
-      expect(dramaticTotalMs - quickTotalMs).toBeGreaterThan(3000);
-    },
-    120_000
-  );
+    // Two steps: quick floor 900 × 2 = 1800ms of holds.
+    //            dramatic floor 3200 × 2 = 6400ms of holds + 2× 800ms pre-settle.
+    // Expected delta is at least ~5s; assert a conservative 3s to avoid flake.
+    expect(dramaticTotalMs - quickTotalMs).toBeGreaterThan(3000);
+  }, 120_000);
 });

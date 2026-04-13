@@ -46,15 +46,11 @@ describe("escapeAssText()", () => {
   });
 
   it("leaves normal text unchanged", () => {
-    expect(escapeAssText("Navigate to homepage")).toBe(
-      "Navigate to homepage"
-    );
+    expect(escapeAssText("Navigate to homepage")).toBe("Navigate to homepage");
   });
 
   it("handles mixed special characters", () => {
-    expect(escapeAssText("path\\to\\{file}")).toBe(
-      "path\\\\to\\\\\\{file\\}"
-    );
+    expect(escapeAssText("path\\to\\{file}")).toBe("path\\\\to\\\\\\{file\\}");
   });
 });
 
@@ -93,11 +89,17 @@ describe("generateAssSubtitles()", () => {
   it("generates dialogue events for each caption", () => {
     const ass = generateAssSubtitles(captions, 1920, 1080);
     // First caption
-    expect(ass).toContain("Dialogue: 0,0:00:00.00,0:00:02.00,Caption,,0,0,0,,Navigate to homepage");
+    expect(ass).toContain(
+      "Dialogue: 0,0:00:00.00,0:00:02.00,Caption,,0,0,0,,Navigate to homepage"
+    );
     expect(ass).toContain("Dialogue: 1,0:00:00.00,0:00:02.00,Route,,0,0,0,,/");
     // Second caption
-    expect(ass).toContain("Dialogue: 0,0:00:02.00,0:00:04.50,Caption,,0,0,0,,Click login button");
-    expect(ass).toContain("Dialogue: 1,0:00:02.00,0:00:04.50,Route,,0,0,0,,/login");
+    expect(ass).toContain(
+      "Dialogue: 0,0:00:02.00,0:00:04.50,Caption,,0,0,0,,Click login button"
+    );
+    expect(ass).toContain(
+      "Dialogue: 1,0:00:02.00,0:00:04.50,Route,,0,0,0,,/login"
+    );
   });
 
   it("produces two dialogue lines per caption (caption + route)", () => {
@@ -191,9 +193,7 @@ describe("generateAssSubtitles() — beats and emphasis", () => {
       },
     ];
     const ass = generateAssSubtitles(captions, 1920, 1080);
-    const chipLine = ass
-      .split("\n")
-      .find((l) => l.includes(",BeatChip,"))!;
+    const chipLine = ass.split("\n").find((l) => l.includes(",BeatChip,"))!;
     // Chip emits at step 2's start (500ms) and ends 700ms later → 1200ms.
     expect(chipLine).toContain(msToAssTime(500 + BEAT_CHIP_DURATION_MS));
   });
@@ -204,9 +204,7 @@ describe("generateAssSubtitles() — beats and emphasis", () => {
       { text: "b", route: "/", startMs: 1000, endMs: 2000, beat: "payoff" },
     ];
     const ass = generateAssSubtitles(captions, 1920, 1080);
-    const chipLine = ass
-      .split("\n")
-      .find((l) => l.includes(",BeatChip,"))!;
+    const chipLine = ass.split("\n").find((l) => l.includes(",BeatChip,"))!;
     expect(chipLine).toContain("\\fad(150,150)");
     expect(chipLine).toContain("PAYOFF");
   });

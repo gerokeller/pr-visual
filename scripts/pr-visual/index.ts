@@ -127,7 +127,10 @@ async function run(): Promise<void> {
   }
 
   const baseUrl = resolveBaseUrl(projectConfig, runCtx);
-  const outputDir = path.resolve(runCtx.rootDir, projectConfig.outputDir ?? ".pr-visual");
+  const outputDir = path.resolve(
+    runCtx.rootDir,
+    projectConfig.outputDir ?? ".pr-visual"
+  );
   fs.mkdirSync(outputDir, { recursive: true });
 
   const runtime: RuntimeConfig = {

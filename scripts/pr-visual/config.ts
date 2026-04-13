@@ -123,10 +123,7 @@ export function subEnv(
 /**
  * Resolve the base URL from the project config + run context.
  */
-export function resolveBaseUrl(
-  config: ProjectConfig,
-  ctx: RunContext
-): string {
+export function resolveBaseUrl(config: ProjectConfig, ctx: RunContext): string {
   const template = config.baseUrl ?? DEFAULT_CONFIG.baseUrl!;
   return sub(template, ctx);
 }

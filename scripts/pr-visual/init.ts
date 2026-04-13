@@ -17,7 +17,10 @@ interface Detection {
 }
 
 function detectPackageManager(root: string): Detection["packageManager"] {
-  if (fs.existsSync(path.join(root, "bun.lockb")) || fs.existsSync(path.join(root, "bun.lock")))
+  if (
+    fs.existsSync(path.join(root, "bun.lockb")) ||
+    fs.existsSync(path.join(root, "bun.lock"))
+  )
     return "bun";
   if (fs.existsSync(path.join(root, "pnpm-lock.yaml"))) return "pnpm";
   if (fs.existsSync(path.join(root, "yarn.lock"))) return "yarn";
@@ -41,22 +44,50 @@ function detectFramework(
   };
   const scripts = pkg.scripts as Record<string, string> | undefined;
 
-  if (deps["next"])
-    return { framework: "Next.js", devCommand: "next dev --port {{port}}", port: 3000 };
-  if (deps["nuxt"] || deps["nuxt3"])
-    return { framework: "Nuxt", devCommand: "nuxt dev --port {{port}}", port: 3000 };
+  if (deps.next)
+    return {
+      framework: "Next.js",
+      devCommand: "next dev --port {{port}}",
+      port: 3000,
+    };
+  if (deps.nuxt || deps.nuxt3)
+    return {
+      framework: "Nuxt",
+      devCommand: "nuxt dev --port {{port}}",
+      port: 3000,
+    };
   if (deps["@remix-run/dev"])
     return { framework: "Remix", devCommand: "remix dev", port: 3000 };
   if (deps["@sveltejs/kit"])
-    return { framework: "SvelteKit", devCommand: "vite dev --port {{port}}", port: 5173 };
-  if (deps["vite"])
-    return { framework: "Vite", devCommand: "vite --port {{port}}", port: 5173 };
+    return {
+      framework: "SvelteKit",
+      devCommand: "vite dev --port {{port}}",
+      port: 5173,
+    };
+  if (deps.vite)
+    return {
+      framework: "Vite",
+      devCommand: "vite --port {{port}}",
+      port: 5173,
+    };
   if (deps["@angular/core"])
-    return { framework: "Angular", devCommand: "ng serve --port {{port}}", port: 4200 };
-  if (deps["gatsby"])
-    return { framework: "Gatsby", devCommand: "gatsby develop -p {{port}}", port: 8000 };
-  if (deps["astro"])
-    return { framework: "Astro", devCommand: "astro dev --port {{port}}", port: 4321 };
+    return {
+      framework: "Angular",
+      devCommand: "ng serve --port {{port}}",
+      port: 4200,
+    };
+  if (deps.gatsby)
+    return {
+      framework: "Gatsby",
+      devCommand: "gatsby develop -p {{port}}",
+      port: 8000,
+    };
+  if (deps.astro)
+    return {
+      framework: "Astro",
+      devCommand: "astro dev --port {{port}}",
+      port: 4321,
+    };
 
   // Fallback: check if there's a "dev" script
   if (scripts?.dev)
@@ -65,27 +96,24 @@ function detectFramework(
   return null;
 }
 
-function detectOrm(
-  root: string,
-  pkg: Record<string, unknown>
-): string | null {
+function detectOrm(root: string, pkg: Record<string, unknown>): string | null {
   const deps = {
     ...(pkg.dependencies as Record<string, string> | undefined),
     ...(pkg.devDependencies as Record<string, string> | undefined),
   };
 
-  if (deps["prisma"] || fs.existsSync(path.join(root, "prisma/schema.prisma")))
+  if (deps.prisma || fs.existsSync(path.join(root, "prisma/schema.prisma")))
     return "prisma";
-  if (deps["drizzle-orm"] || deps["drizzle-kit"])
-    return "drizzle";
-  if (deps["typeorm"])
-    return "typeorm";
-  if (deps["knex"])
-    return "knex";
+  if (deps["drizzle-orm"] || deps["drizzle-kit"]) return "drizzle";
+  if (deps.typeorm) return "typeorm";
+  if (deps.knex) return "knex";
   return null;
 }
 
-function detectDocker(root: string): { hasDocker: boolean; services: string[] } {
+function detectDocker(root: string): {
+  hasDocker: boolean;
+  services: string[];
+} {
   const composeFiles = [
     "docker-compose.yml",
     "docker-compose.yaml",
@@ -116,12 +144,12 @@ function detectDocker(root: string): { hasDocker: boolean; services: string[] } 
 function detectHealthEndpoint(root: string): string | null {
   // Look for common health/API route files
   const candidates = [
-    "src/app/api/health/route.ts",    // Next.js App Router
-    "src/pages/api/health.ts",         // Next.js Pages Router
+    "src/app/api/health/route.ts", // Next.js App Router
+    "src/pages/api/health.ts", // Next.js Pages Router
     "app/api/health/route.ts",
     "pages/api/health.ts",
     "src/routes/api/health/+server.ts", // SvelteKit
-    "server/api/health.ts",            // Nuxt
+    "server/api/health.ts", // Nuxt
   ];
 
   for (const candidate of candidates) {
@@ -159,46 +187,71 @@ function detect(root: string): Detection {
 
 function installCmd(pm: Detection["packageManager"]): string {
   switch (pm) {
-    case "bun":  return "bun install --frozen-lockfile";
-    case "pnpm": return "pnpm install --frozen-lockfile";
-    case "yarn": return "yarn install --frozen-lockfile";
-    default:     return "npm ci";
+    case "bun":
+      return "bun install --frozen-lockfile";
+    case "pnpm":
+      return "pnpm install --frozen-lockfile";
+    case "yarn":
+      return "yarn install --frozen-lockfile";
+    default:
+      return "npm ci";
   }
 }
 
 function runCmd(pm: Detection["packageManager"], script: string): string {
   switch (pm) {
-    case "bun":  return `bun run ${script}`;
-    case "pnpm": return `pnpm ${script}`;
-    case "yarn": return `yarn ${script}`;
-    default:     return `npx ${script}`;
+    case "bun":
+      return `bun run ${script}`;
+    case "pnpm":
+      return `pnpm ${script}`;
+    case "yarn":
+      return `yarn ${script}`;
+    default:
+      return `npx ${script}`;
   }
 }
 
-function migrationCommand(orm: string, pm: Detection["packageManager"]): string | null {
+function migrationCommand(
+  orm: string,
+  pm: Detection["packageManager"]
+): string | null {
   switch (orm) {
-    case "prisma":  return `${runCmd(pm, "prisma migrate deploy")}`;
-    case "drizzle": return `${runCmd(pm, "drizzle-kit push")}`;
-    case "typeorm": return `${runCmd(pm, "typeorm migration:run")}`;
-    case "knex":    return `${runCmd(pm, "knex migrate:latest")}`;
-    default:        return null;
+    case "prisma":
+      return `${runCmd(pm, "prisma migrate deploy")}`;
+    case "drizzle":
+      return `${runCmd(pm, "drizzle-kit push")}`;
+    case "typeorm":
+      return `${runCmd(pm, "typeorm migration:run")}`;
+    case "knex":
+      return `${runCmd(pm, "knex migrate:latest")}`;
+    default:
+      return null;
   }
 }
 
-function seedCommand(orm: string, pm: Detection["packageManager"]): string | null {
+function seedCommand(
+  orm: string,
+  pm: Detection["packageManager"]
+): string | null {
   switch (orm) {
-    case "prisma":  return `${runCmd(pm, "prisma db seed")}`;
-    default:        return null;
+    case "prisma":
+      return `${runCmd(pm, "prisma db seed")}`;
+    default:
+      return null;
   }
 }
 
 function generateConfigSource(d: Detection): string {
   const lines: string[] = [];
 
-  lines.push(`import type { ProjectConfig } from "pr-visual/scripts/pr-visual/types.js";`);
+  lines.push(
+    `import type { ProjectConfig } from "pr-visual/scripts/pr-visual/types.js";`
+  );
   lines.push(``);
   if (d.framework) {
-    lines.push(`// Detected: ${d.framework} + ${d.packageManager}${d.orm ? ` + ${d.orm}` : ""}${d.hasDocker ? " + Docker" : ""}`);
+    lines.push(
+      `// Detected: ${d.framework} + ${d.packageManager}${d.orm ? ` + ${d.orm}` : ""}${d.hasDocker ? " + Docker" : ""}`
+    );
   }
   lines.push(`export default {`);
   lines.push(`  port: ${d.defaultPort},`);
@@ -214,13 +267,16 @@ function generateConfigSource(d: Detection): string {
     const services = d.dockerServices.join(" ");
     setupSteps.push(
       `    // Docker services are automatically scoped to this run via COMPOSE_PROJECT_NAME={{runId}}\n` +
-      `    { name: "Start services", command: "docker compose up -d ${services}" },`
+        `    { name: "Start services", command: "docker compose up -d ${services}" },`
     );
   }
 
   if (d.orm) {
     const migrate = migrationCommand(d.orm, d.packageManager);
-    if (migrate) setupSteps.push(`    { name: "Migrate database", command: "${migrate}" },`);
+    if (migrate)
+      setupSteps.push(
+        `    { name: "Migrate database", command: "${migrate}" },`
+      );
     const seed = seedCommand(d.orm, d.packageManager);
     if (seed) setupSteps.push(`    { name: "Seed data", command: "${seed}" },`);
   }
@@ -245,8 +301,12 @@ function generateConfigSource(d: Detection): string {
   if (d.hasDocker) {
     lines.push(``);
     lines.push(`  teardown: [`);
-    lines.push(`    // COMPOSE_PROJECT_NAME is set automatically — only this run's containers are removed`);
-    lines.push(`    { name: "Stop services", command: "docker compose down -v" },`);
+    lines.push(
+      `    // COMPOSE_PROJECT_NAME is set automatically — only this run's containers are removed`
+    );
+    lines.push(
+      `    { name: "Stop services", command: "docker compose down -v" },`
+    );
     lines.push(`  ],`);
   }
 
@@ -276,7 +336,9 @@ export async function initConfig(projectRoot: string): Promise<void> {
 
   console.log(`  Framework:       ${d.framework ?? "unknown"}`);
   console.log(`  Package manager: ${d.packageManager}`);
-  console.log(`  Docker:          ${d.hasDocker ? `yes (${d.dockerServices.join(", ")})` : "no"}`);
+  console.log(
+    `  Docker:          ${d.hasDocker ? `yes (${d.dockerServices.join(", ")})` : "no"}`
+  );
   console.log(`  ORM:             ${d.orm ?? "none"}`);
   console.log(`  Health endpoint: ${d.healthEndpoint ?? "none detected"}`);
   console.log(`  Default port:    ${d.defaultPort}`);
@@ -285,5 +347,7 @@ export async function initConfig(projectRoot: string): Promise<void> {
   fs.writeFileSync(configPath, source, "utf-8");
 
   console.log(`\n  Created: ${configPath}`);
-  console.log("  Review and adjust the config for your project, then commit it.");
+  console.log(
+    "  Review and adjust the config for your project, then commit it."
+  );
 }

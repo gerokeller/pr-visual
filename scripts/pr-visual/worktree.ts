@@ -69,7 +69,7 @@ export async function createWorktree(
   repoRoot: string
 ): Promise<WorktreeContext> {
   const runId = `pr-visual-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
-  const currentRef = getCurrentRef(repoRoot);
+  const _currentRef = getCurrentRef(repoRoot);
 
   // Resolve worktree parent directory (outside the repo)
   const worktreeParent = path.resolve(

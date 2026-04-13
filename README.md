@@ -6,7 +6,7 @@ Each run is isolated in a **git worktree** with its own port and **namespaced re
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - [ffmpeg](https://ffmpeg.org/) — `brew install ffmpeg` (optional — needed for video captions)
 - [GitHub CLI](https://cli.github.com/) — `brew install gh`
 - Chromium (installed automatically via Playwright on `postinstall`)
@@ -554,6 +554,19 @@ scripts/pr-visual/
     screenshots.ts        # sharp + SVG sidebar compositing → WebP
     video.ts              # ffmpeg ASS caption burning → H.264 MP4
 ```
+
+## Development
+
+```bash
+npm ci                  # install deps + Playwright chromium
+npm run typecheck       # tsc --noEmit
+npm run lint            # Biome (lint + format check, fails on warnings)
+npm run lint:fix        # Biome auto-fix (safe rules) + write
+npm run format          # Biome format only — write
+npm test                # vitest run (unit + integration + e2e)
+```
+
+CI runs `typecheck`, `lint`, and the full `test` suite on every PR and on push to `master` (Node 20). All warnings are treated as errors.
 
 ## License
 

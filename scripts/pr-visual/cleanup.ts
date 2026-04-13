@@ -1,7 +1,11 @@
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getRepoRoot, listActiveWorktrees, removeWorktree } from "./worktree.js";
+import {
+  getRepoRoot,
+  listActiveWorktrees,
+  removeWorktree,
+} from "./worktree.js";
 import { loadProjectConfig } from "./config.js";
 import type { WorktreeContext } from "./types.js";
 
@@ -44,10 +48,13 @@ function findOrphanedDockerProjects(): Map<string, string[]> {
  */
 function removeDockerProject(projectName: string): void {
   try {
-    execSync(`docker compose -p ${JSON.stringify(projectName)} down -v --remove-orphans`, {
-      stdio: "pipe",
-      timeout: 30_000,
-    });
+    execSync(
+      `docker compose -p ${JSON.stringify(projectName)} down -v --remove-orphans`,
+      {
+        stdio: "pipe",
+        timeout: 30_000,
+      }
+    );
   } catch {
     // Try force-removing containers individually
     try {
@@ -107,9 +114,7 @@ export async function cleanupOrphans(projectRoot?: string): Promise<void> {
   // 2. Find and remove orphaned Docker projects
   const dockerProjects = findOrphanedDockerProjects();
   if (dockerProjects.size > 0) {
-    console.log(
-      `\n  Found ${dockerProjects.size} orphaned Docker project(s):`
-    );
+    console.log(`\n  Found ${dockerProjects.size} orphaned Docker project(s):`);
     for (const [project, containers] of dockerProjects) {
       console.log(`    → ${project} (${containers.length} container(s))`);
       removeDockerProject(project);
@@ -148,7 +153,11 @@ export async function cleanupOrphans(projectRoot?: string): Promise<void> {
 
   // 4. Prune git worktree refs
   try {
-    execSync("git worktree prune", { cwd: repoRoot, stdio: "pipe", timeout: 5_000 });
+    execSync("git worktree prune", {
+      cwd: repoRoot,
+      stdio: "pipe",
+      timeout: 5_000,
+    });
   } catch {
     // Non-critical
   }
