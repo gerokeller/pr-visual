@@ -191,6 +191,9 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `routes` | `Array<string \| { path, label }>` | `["/"]` | Routes for static fallback capture |
 | `quality` | `"720p" \| "1080p" \| "2k" \| "4k"` | — | Desktop quality preset (see [Quality presets](#quality-presets)) |
 | `pacing.wordsPerSecond` | `number` | `3.2` | Reading speed used by [adaptive pacing](#adaptive-pacing) |
+| `overlays.cursor` | `boolean` | `false` | Inject a visible custom cursor during capture (see [Interaction overlays](#interaction-overlays)) |
+| `overlays.clicks` | `boolean` | `false` | Emit a ripple + center dot at each click's coordinates |
+| `overlays.highlights` | `boolean` | `false` | Enable the `highlight` scenario step action (pulsing glow + dimmed backdrop) |
 
 ### Minimal config examples
 
@@ -371,6 +374,45 @@ Scenarios can carry an audience label via `persona: "Agency PM"` (any free-form 
 ```
 
 Invalid beat, emphasis, or pacing values fail the run with a clear error before capture starts.
+
+## Interaction overlays
+
+By default, pr-visual captures clean recordings with no cursor or click indicators. If you want your videos to look human-driven, opt into one or more overlays in `.pr-visual.config.ts`:
+
+```typescript
+export default {
+  devServer: { command: "npm run dev" },
+  overlays: {
+    cursor: true,      // visible custom cursor tracking the mouse
+    clicks: true,      // ripple + center dot at each click
+    highlights: true,  // enables the `highlight` scenario step
+  },
+} satisfies ProjectConfig;
+```
+
+Each flag is independent; all default to `false` so existing users see no change.
+
+### `highlight` step
+
+When `overlays.highlights: true`, scenarios can use a new step action that pulses a glow ring around a selector while dimming the rest of the viewport:
+
+```ts
+{
+  action: "highlight",
+  selector: "#primary-cta",
+  duration: 1500,  // ms; defaults to 1500 when omitted
+  caption: "The primary call to action",
+  beat: "payoff",
+}
+```
+
+The highlight runs for `duration` ms; the scenario's pacing hold starts after cleanup.
+
+### Capture-time DOM injection
+
+Overlays are injected into the page during capture (unlike the post-capture sidebar and ASS caption layers), so they appear in the recorded video at the right moment. The trade-off: an active cursor or highlight will be visible in screenshots taken right after a `navigate`. If you want clean screenshots alongside an overlay-rich video, leave `overlays.cursor` off.
+
+Mobile viewports automatically use a touch-style cursor and tap-ring animations.
 
 ## CLI commands
 

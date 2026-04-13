@@ -127,4 +127,30 @@ describe("validateScenarios()", () => {
       validateScenarios([scenario({ persona: "Customer Success Manager" })])
     ).not.toThrow();
   });
+
+  it("accepts a valid highlight step with selector", () => {
+    expect(() =>
+      validateScenarios([
+        scenario({
+          steps: [
+            {
+              action: "highlight",
+              selector: "#primary-cta",
+              caption: "Pulse the CTA",
+            },
+          ],
+        }),
+      ])
+    ).not.toThrow();
+  });
+
+  it("rejects a highlight step without a selector", () => {
+    expect(() =>
+      validateScenarios([
+        scenario({
+          steps: [{ action: "highlight", caption: "no selector" }],
+        }),
+      ])
+    ).toThrowError(/Missing selector for highlight step/);
+  });
 });

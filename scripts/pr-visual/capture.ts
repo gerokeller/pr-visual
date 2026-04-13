@@ -19,22 +19,45 @@ import {
   createPacingContext,
   dramaticPreSettleMs,
 } from "./pacing.js";
+import {
+  DEFAULT_HIGHLIGHT_DURATION_MS,
+  highlightElement,
+  injectCustomCursor,
+  type InputVariant,
+  resolveInputVariant,
+  showClickIndicator,
+} from "./overlays.js";
+
+interface ExecuteStepOptions {
+  overlays?: ProjectConfig["overlays"];
+  variant: InputVariant;
+}
 
 async function executeStep(
   page: Page,
   step: ScenarioStep,
-  baseUrl: string
+  baseUrl: string,
+  options: ExecuteStepOptions
 ): Promise<void> {
+  const { overlays, variant } = options;
+
   switch (step.action) {
     case "navigate": {
       const url = step.url?.startsWith("http")
         ? step.url
         : new URL(step.url ?? "/", baseUrl).toString();
       await page.goto(url, { waitUntil: "networkidle" });
+      if (overlays?.cursor) {
+        await injectCustomCursor(page, variant);
+      }
       break;
     }
     case "click":
       if (step.selector) {
+        if (overlays?.clicks) {
+          const locator = page.locator(step.selector);
+          await showClickIndicator(page, locator, variant);
+        }
         await page.click(step.selector, { timeout: 5000 });
       }
       break;
@@ -59,6 +82,20 @@ async function executeStep(
         step.selector ?? null
       );
       await page.waitForTimeout(300);
+      break;
+    case "highlight":
+      if (step.selector && overlays?.highlights) {
+        const locator = page.locator(step.selector);
+        await highlightElement(
+          page,
+          locator,
+          step.duration ?? DEFAULT_HIGHLIGHT_DURATION_MS
+        );
+      } else if (step.duration) {
+        // Highlight disabled but still honor the intended hold so the
+        // scenario timing stays stable across config toggles.
+        await page.waitForTimeout(step.duration);
+      }
       break;
     case "screenshot":
       // Handled by the caller
@@ -105,6 +142,8 @@ async function captureScenario(
   let screenshotIndex = 0;
   let pacingContext = createPacingContext();
   const wordsPerSecond = projectConfig?.pacing?.wordsPerSecond;
+  const variant = resolveInputVariant(viewport);
+  const overlays = projectConfig?.overlays;
 
   for (const step of scenario.steps) {
     const preSettleMs = dramaticPreSettleMs(step);
@@ -114,7 +153,7 @@ async function captureScenario(
 
     const stepStartMs = Date.now() - startTime;
 
-    await executeStep(page, step, baseUrl);
+    await executeStep(page, step, baseUrl, { overlays, variant });
 
     const currentRoute = new URL(page.url()).pathname;
     const stepEndMs = Date.now() - startTime;

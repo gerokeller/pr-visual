@@ -65,11 +65,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     // Beat-transition chip — emit only at an actual transition from one
     // beat to another, so N distinct beats produce N-1 chips.
-    const isTransition =
+    if (
       cap.beat !== undefined &&
       previousBeat !== undefined &&
-      cap.beat !== previousBeat;
-    if (isTransition) {
+      cap.beat !== previousBeat
+    ) {
       const chipEnd = msToAssTime(
         Math.min(cap.endMs, cap.startMs + BEAT_CHIP_DURATION_MS)
       );

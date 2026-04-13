@@ -88,6 +88,9 @@ function actionBonusMs(step: ScenarioStep, ctx: PacingContext): number {
       return 600;
     case "type":
       return Math.ceil((step.value?.length ?? 0) / 10) * 200;
+    case "highlight":
+      // Matches demo-recorder's highlight bonus (800ms).
+      return 800;
     case "wait":
     case "screenshot":
       return 0;
