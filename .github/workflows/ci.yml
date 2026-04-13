@@ -45,6 +45,13 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      - name: Install ffmpeg
+        # Required by the video annotator (subtitle burn) and by the
+        # voice-over pipeline (ffprobe duration probe + WAV/AIFF→MP3
+        # transcode). ubuntu-latest images include ffmpeg, but install
+        # explicitly to be deterministic across runner image updates.
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Typecheck
         run: npm run typecheck
 
