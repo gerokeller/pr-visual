@@ -157,4 +157,34 @@ describe("validateScenarios()", () => {
       ])
     ).toThrowError(/Missing selector for highlight step/);
   });
+
+  describe("auth profile cross-check", () => {
+    it("accepts a scenario with a profile that exists in auth.profiles", () => {
+      expect(() =>
+        validateScenarios([scenario({ profile: "admin" })], {
+          auth: { profiles: { admin: "admin.json", viewer: "v.json" } },
+        })
+      ).not.toThrow();
+    });
+
+    it("rejects a scenario referencing an unknown profile name", () => {
+      expect(() =>
+        validateScenarios([scenario({ profile: "ghost" })], {
+          auth: { profiles: { admin: "admin.json" } },
+        })
+      ).toThrowError(
+        /requests unknown auth profile "ghost"\. Known profiles: admin\./
+      );
+    });
+
+    it("rejects a scenario with profile when no profiles are configured", () => {
+      expect(() =>
+        validateScenarios([scenario({ profile: "admin" })])
+      ).toThrowError(/no profiles are configured/);
+    });
+
+    it("scenarios without a profile do not require an auth block", () => {
+      expect(() => validateScenarios([scenario()])).not.toThrow();
+    });
+  });
 });

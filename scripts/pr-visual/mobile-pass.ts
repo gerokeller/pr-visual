@@ -82,7 +82,8 @@ export async function runMobilePass(
   scenario: Scenario,
   baseUrl: string,
   outputDir: string,
-  projectConfig: ProjectConfig
+  projectConfig: ProjectConfig,
+  storageStatePath?: string
 ): Promise<MobilePassResult | null> {
   const mobile = resolveMobileConfig(projectConfig.video?.mobile);
 
@@ -116,6 +117,7 @@ export async function runMobilePass(
         dir: passDir,
         size: { width: videoWidth, height: videoHeight },
       },
+      ...(storageStatePath ? { storageState: storageStatePath } : {}),
     });
     const page: Page = await context.newPage();
 

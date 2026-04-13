@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { initConfig } from "../../scripts/pr-visual/init.js";
+import {
+  ensureGitignoreEntries,
+  initConfig,
+} from "../../scripts/pr-visual/init.js";
 
 function createTmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pr-visual-init-test-"));
@@ -141,5 +144,60 @@ describe("initConfig()", () => {
     expect(content).toContain("devServer");
     expect(content).toContain("npm run dev");
     expect(content).toContain("npm ci");
+  });
+
+  it("appends .pr-visual/auth/ to .gitignore on first init", async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "package.json"),
+      JSON.stringify({ scripts: { dev: "npm start" } })
+    );
+    fs.writeFileSync(path.join(tmpDir, ".gitignore"), "node_modules/\n");
+
+    await initConfig(tmpDir);
+
+    const gi = fs.readFileSync(path.join(tmpDir, ".gitignore"), "utf-8");
+    expect(gi).toContain("node_modules/");
+    expect(gi).toContain(".pr-visual/auth/");
+  });
+});
+
+describe("ensureGitignoreEntries()", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = createTmpDir();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("creates .gitignore when missing", () => {
+    ensureGitignoreEntries(tmpDir, [".pr-visual/auth/"]);
+    const gi = fs.readFileSync(path.join(tmpDir, ".gitignore"), "utf-8");
+    expect(gi).toContain(".pr-visual/auth/");
+  });
+
+  it("does not duplicate entries that already exist", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, ".gitignore"),
+      "node_modules/\n.pr-visual/auth/\n"
+    );
+    ensureGitignoreEntries(tmpDir, [".pr-visual/auth/"]);
+    const gi = fs.readFileSync(path.join(tmpDir, ".gitignore"), "utf-8");
+    expect(gi.match(/\.pr-visual\/auth\//g)).toHaveLength(1);
+  });
+
+  it("appends only missing entries", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, ".gitignore"),
+      "node_modules/\n.pr-visual/auth/\n"
+    );
+    ensureGitignoreEntries(tmpDir, [".pr-visual/auth/", ".env.local"]);
+    const gi = fs.readFileSync(path.join(tmpDir, ".gitignore"), "utf-8");
+    expect(gi).toContain("node_modules/");
+    expect(gi).toContain(".pr-visual/auth/");
+    expect(gi).toContain(".env.local");
+    expect(gi.match(/\.pr-visual\/auth\//g)).toHaveLength(1);
   });
 });

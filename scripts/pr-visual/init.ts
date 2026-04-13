@@ -350,4 +350,30 @@ export async function initConfig(projectRoot: string): Promise<void> {
   console.log(
     "  Review and adjust the config for your project, then commit it."
   );
+
+  ensureGitignoreEntries(projectRoot, [".pr-visual/auth/"]);
+}
+
+/** Append the listed entries to `.gitignore` if not already present. Creates
+ *  the file when missing. The auth dir is added by default because storage
+ *  state files contain session tokens. */
+export function ensureGitignoreEntries(
+  projectRoot: string,
+  entries: string[]
+): void {
+  const gitignorePath = path.join(projectRoot, ".gitignore");
+  let existing = "";
+  if (fs.existsSync(gitignorePath)) {
+    existing = fs.readFileSync(gitignorePath, "utf-8");
+  }
+  const existingLines = new Set(existing.split(/\r?\n/).map((l) => l.trim()));
+  const toAdd = entries.filter((e) => !existingLines.has(e.trim()));
+  if (toAdd.length === 0) return;
+
+  const prefix = existing && !existing.endsWith("\n") ? "\n" : "";
+  const block = `${prefix}\n# pr-visual\n${toAdd.join("\n")}\n`;
+  fs.writeFileSync(gitignorePath, existing + block, "utf-8");
+  console.log(
+    `  Updated: ${gitignorePath} (added ${toAdd.length} entry/entries)`
+  );
 }

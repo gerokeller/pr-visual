@@ -18,6 +18,7 @@ import type {
 } from "./types.js";
 import { VIEWPORTS, COLOR_SCHEMES } from "./types.js";
 import { resolveDesktopViewport } from "./quality.js";
+import { resolveAuth, resolveProfilePath } from "./auth.js";
 import {
   advancePacingContext,
   computeAdaptiveHoldMs,
@@ -112,7 +113,8 @@ async function captureScenario(
   colorScheme: ColorScheme,
   baseUrl: string,
   outputDir: string,
-  projectConfig?: ProjectConfig
+  projectConfig?: ProjectConfig,
+  storageStatePath?: string
 ): Promise<CaptureResult> {
   const contextDir = path.join(outputDir, `${viewport.name}-${colorScheme}`);
   fs.mkdirSync(contextDir, { recursive: true });
@@ -130,6 +132,7 @@ async function captureScenario(
       dir: contextDir,
       size: { width: videoWidth, height: videoHeight },
     },
+    ...(storageStatePath ? { storageState: storageStatePath } : {}),
   };
 
   const context: BrowserContext = await browser.newContext(contextOptions);
@@ -223,19 +226,30 @@ export async function captureAllVariants(
   scenarios: Scenario[],
   baseUrl: string,
   outputDir: string,
-  projectConfig?: ProjectConfig
+  projectConfig?: ProjectConfig,
+  projectRoot: string = process.cwd()
 ): Promise<CaptureResult[]> {
   const browser = await chromium.launch({ headless: true });
   const results: CaptureResult[] = [];
+
+  const resolvedAuth = projectConfig?.auth
+    ? resolveAuth(projectConfig.auth, projectRoot)
+    : null;
 
   try {
     for (const scenario of scenarios) {
       const desktopViewport = resolveDesktopViewport(scenario, projectConfig);
       const viewports: ViewportConfig[] = [desktopViewport, VIEWPORTS.mobile];
+      const storageStatePath =
+        scenario.profile && resolvedAuth
+          ? resolveProfilePath(scenario.profile, resolvedAuth)
+          : undefined;
       for (const viewport of viewports) {
         for (const colorScheme of COLOR_SCHEMES) {
           console.log(
-            `  Capturing: ${scenario.name} — ${viewport.name} ${viewport.width}x${viewport.height}@${viewport.deviceScaleFactor}x — ${colorScheme}`
+            `  Capturing: ${scenario.name} — ${viewport.name} ${viewport.width}x${viewport.height}@${viewport.deviceScaleFactor}x — ${colorScheme}${
+              storageStatePath ? ` — profile=${scenario.profile}` : ""
+            }`
           );
           const result = await captureScenario(
             browser,
@@ -244,7 +258,8 @@ export async function captureAllVariants(
             colorScheme,
             baseUrl,
             outputDir,
-            projectConfig
+            projectConfig,
+            storageStatePath
           );
           results.push(result);
         }
