@@ -1,11 +1,14 @@
 name: Release
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [master]
+  workflow_dispatch:
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-master
   cancel-in-progress: false
 
 permissions:
@@ -14,6 +17,8 @@ permissions:
 jobs:
   release:
     name: Tag and release
+    # Only release when the upstream CI run succeeded (or when dispatched manually).
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -21,9 +26,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # On workflow_run, github.sha is master HEAD at trigger time, not the
+          # commit that CI validated. Pin to the exact SHA that passed CI.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Compute next version
-        id: version
+      - name: Decide whether to release
+        id: decide
         run: |
           set -euo pipefail
 
@@ -31,35 +39,36 @@ jobs:
           latest_tag=$(git tag --list 'v*' --sort=-v:refname | head -n1 || true)
           latest="${latest_tag#v}"
 
+          echo "package.json version: ${pkg}"
+          echo "latest tag: ${latest_tag:-<none>}"
+
           if [ -z "$latest" ]; then
-            next="$pkg"
+            # No prior tags — release whatever package.json says.
+            release="true"
           else
-            # If package.json was bumped above the latest tag, honor it (manual minor/major).
-            # Otherwise auto-bump the patch segment of the latest tag.
             higher=$(printf '%s\n%s\n' "$pkg" "$latest" | sort -V | tail -n1)
             if [ "$pkg" != "$latest" ] && [ "$higher" = "$pkg" ]; then
-              next="$pkg"
+              release="true"
             else
-              IFS='.' read -r major minor patch <<< "$latest"
-              next="${major}.${minor}.$((patch + 1))"
+              release="false"
             fi
           fi
 
-          if git rev-parse -q --verify "refs/tags/v${next}" >/dev/null; then
-            echo "Tag v${next} already exists; nothing to release."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "version=${next}" >> "$GITHUB_OUTPUT"
-            echo "tag=v${next}" >> "$GITHUB_OUTPUT"
+          if [ "$release" = "true" ] && git rev-parse -q --verify "refs/tags/v${pkg}" >/dev/null; then
+            echo "Tag v${pkg} already exists; skipping."
+            release="false"
           fi
 
+          echo "release=${release}" >> "$GITHUB_OUTPUT"
+          echo "version=${pkg}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${pkg}" >> "$GITHUB_OUTPUT"
+
       - name: Create release
-        if: steps.version.outputs.skip == 'false'
+        if: steps.decide.outputs.release == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: ${{ steps.version.outputs.tag }}
-          target_commitish: ${{ github.sha }}
+          tag_name: ${{ steps.decide.outputs.tag }}
+          name: ${{ steps.decide.outputs.tag }}
+          target_commitish: ${{ github.event.workflow_run.head_sha || github.sha }}
           generate_release_notes: true
           make_latest: true

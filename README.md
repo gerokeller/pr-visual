@@ -988,12 +988,20 @@ CI runs `typecheck`, `lint`, and the full `test` suite on every PR and on push t
 
 ## Releases
 
-Releases are created automatically by `.github/workflows/release.yml` on every push to `master`.
+Releases are created by `.github/workflows/release.yml`, which runs after the `CI` workflow finishes successfully on `master`. A red CI run blocks the release.
 
-- **Patch bumps are automatic.** Merge a PR; the workflow reads the latest `v*` tag, increments the patch segment, tags the commit, and publishes a GitHub Release with auto-generated notes. No code change required.
-- **Minor and major bumps are manual.** Before merging, bump `version` in `package.json` to the target `MAJOR.MINOR.0` (e.g., `1.1.3` → `1.2.0`). The workflow detects that `package.json` is ahead of the latest tag and uses that version instead of auto-incrementing. Optionally update `CHANGELOG.md` in the same PR.
-- **Source of truth for the released version is the latest `v*` git tag**, not `package.json`. `package.json` only needs to move when you want a minor or major bump.
-- Release notes come from GitHub's auto-generated changelog (merged PRs and commits since the previous tag). `CHANGELOG.md` is maintained by hand for the human-readable history; keep it in sync when you make a minor/major bump.
+**A release is cut only when `package.json` `version` is bumped above the latest `v*` git tag.** Merging a PR that does not change `version` does not produce a release — this lets you land refactors, docs, and chore work between shipments.
+
+To cut a release, open a PR that:
+
+- bumps `version` in `package.json` (patch / minor / major as appropriate);
+- bumps `version` in `.claude-plugin/plugin.json` to the same value;
+- bumps both `version` fields in `.claude-plugin/marketplace.json` to the same value;
+- adds a `CHANGELOG.md` entry describing the release.
+
+When the PR lands on `master` and CI passes, the workflow tags the commit `v<version>` and publishes a GitHub Release with auto-generated notes (merged PRs and commits since the previous tag). The workflow itself never writes to the repository.
+
+If CI passed but the release did not fire (e.g., a transient failure), use the workflow's `workflow_dispatch` trigger from the Actions tab to re-run it.
 
 ## License
 
