@@ -29,24 +29,9 @@ jobs:
           # On workflow_run, github.sha is master HEAD at trigger time, not the
           # commit that CI validated. Pin to the exact SHA that passed CI.
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          persist-credentials: true
 
-      - name: Detect self-triggered run
-        id: self
-        run: |
-          set -euo pipefail
-          subject=$(git log -1 --pretty=%s)
-          echo "commit subject: $subject"
-          if printf '%s' "$subject" | grep -qE '^chore\(release\): sync manifests '; then
-            echo "This commit is the manifest-sync commit from a previous release run; skipping."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Compute next version
-        id: version
-        if: steps.self.outputs.skip == 'false'
+      - name: Decide whether to release
+        id: decide
         run: |
           set -euo pipefail
 
@@ -54,72 +39,36 @@ jobs:
           latest_tag=$(git tag --list 'v*' --sort=-v:refname | head -n1 || true)
           latest="${latest_tag#v}"
 
+          echo "package.json version: ${pkg}"
+          echo "latest tag: ${latest_tag:-<none>}"
+
           if [ -z "$latest" ]; then
-            next="$pkg"
+            # No prior tags — release whatever package.json says.
+            release="true"
           else
             higher=$(printf '%s\n%s\n' "$pkg" "$latest" | sort -V | tail -n1)
             if [ "$pkg" != "$latest" ] && [ "$higher" = "$pkg" ]; then
-              next="$pkg"
+              release="true"
             else
-              IFS='.' read -r major minor patch <<< "$latest"
-              next="${major}.${minor}.$((patch + 1))"
+              release="false"
             fi
           fi
 
-          if git rev-parse -q --verify "refs/tags/v${next}" >/dev/null; then
-            echo "Tag v${next} already exists; nothing to release."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "version=${next}" >> "$GITHUB_OUTPUT"
-            echo "tag=v${next}" >> "$GITHUB_OUTPUT"
-            echo "pkg_version=${pkg}" >> "$GITHUB_OUTPUT"
+          if [ "$release" = "true" ] && git rev-parse -q --verify "refs/tags/v${pkg}" >/dev/null; then
+            echo "Tag v${pkg} already exists; skipping."
+            release="false"
           fi
 
-      - name: Sync version in manifests
-        id: sync
-        if: steps.version.outputs.skip == 'false' && steps.version.outputs.pkg_version != steps.version.outputs.version
-        env:
-          NEXT_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          node -e '
-            const fs = require("fs");
-            const next = process.env.NEXT_VERSION;
-            const writeJson = (path, mut) => {
-              const data = JSON.parse(fs.readFileSync(path, "utf8"));
-              mut(data);
-              fs.writeFileSync(path, JSON.stringify(data, null, 2) + "\n");
-            };
-            writeJson("package.json", d => { d.version = next; });
-            writeJson(".claude-plugin/plugin.json", d => { d.version = next; });
-            writeJson(".claude-plugin/marketplace.json", d => {
-              if (d.metadata && d.metadata.version) d.metadata.version = next;
-              if (Array.isArray(d.plugins)) {
-                d.plugins.forEach(p => { if (p.version) p.version = next; });
-              }
-            });
-          '
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "release=${release}" >> "$GITHUB_OUTPUT"
+          echo "version=${pkg}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${pkg}" >> "$GITHUB_OUTPUT"
 
       - name: Create release
-        if: steps.version.outputs.skip == 'false'
+        if: steps.decide.outputs.release == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: ${{ steps.version.outputs.tag }}
+          tag_name: ${{ steps.decide.outputs.tag }}
+          name: ${{ steps.decide.outputs.tag }}
           target_commitish: ${{ github.event.workflow_run.head_sha || github.sha }}
           generate_release_notes: true
           make_latest: true
-
-      - name: Commit manifest bump to master
-        if: steps.version.outputs.skip == 'false' && steps.sync.outputs.changed == 'true'
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json .claude-plugin/plugin.json .claude-plugin/marketplace.json
-          # CI and CodeQL run on this commit so branch protection is satisfied.
-          # The Release workflow self-detects this commit (see "Detect self-triggered run")
-          # and exits without creating another tag, so there is no feedback loop.
-          git commit -m "chore(release): sync manifests to v${{ steps.version.outputs.version }}"
-          git push origin HEAD:master
