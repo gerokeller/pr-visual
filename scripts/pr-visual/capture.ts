@@ -33,10 +33,12 @@ import {
   resolveInputVariant,
   showClickIndicator,
 } from "./overlays.js";
+import { invokePom, loadPomModules, type LoadedPoms } from "./pom.js";
 
 interface ExecuteStepOptions {
   overlays?: ProjectConfig["overlays"];
   variant: InputVariant;
+  poms?: LoadedPoms;
 }
 
 async function executeStep(
@@ -45,7 +47,7 @@ async function executeStep(
   baseUrl: string,
   options: ExecuteStepOptions
 ): Promise<void> {
-  const { overlays, variant } = options;
+  const { overlays, variant, poms } = options;
 
   switch (step.action) {
     case "navigate": {
@@ -100,6 +102,14 @@ async function executeStep(
         await page.waitForTimeout(step.duration);
       }
       break;
+    case "pom":
+      if (!poms) {
+        throw new Error(
+          "pom step reached capture with no loaded POM modules — validation should have caught this."
+        );
+      }
+      await invokePom(poms, page, step);
+      break;
     case "screenshot":
       // Handled by the caller
       break;
@@ -114,7 +124,8 @@ async function captureScenario(
   baseUrl: string,
   outputDir: string,
   projectConfig?: ProjectConfig,
-  storageStatePath?: string
+  storageStatePath?: string,
+  loadedPoms?: LoadedPoms
 ): Promise<CaptureResult> {
   const contextDir = path.join(outputDir, `${viewport.name}-${colorScheme}`);
   fs.mkdirSync(contextDir, { recursive: true });
@@ -155,7 +166,11 @@ async function captureScenario(
 
     const stepStartMs = Date.now() - startTime;
 
-    await executeStep(page, step, baseUrl, { overlays, variant });
+    await executeStep(page, step, baseUrl, {
+      overlays,
+      variant,
+      ...(loadedPoms ? { poms: loadedPoms } : {}),
+    });
 
     const currentRoute = new URL(page.url()).pathname;
     const stepEndMs = Date.now() - startTime;
@@ -227,7 +242,8 @@ export async function captureAllVariants(
   baseUrl: string,
   outputDir: string,
   projectConfig?: ProjectConfig,
-  projectRoot: string = process.cwd()
+  projectRoot: string = process.cwd(),
+  loadedPoms?: LoadedPoms
 ): Promise<CaptureResult[]> {
   const browser = await chromium.launch({ headless: true });
   const results: CaptureResult[] = [];
@@ -235,6 +251,11 @@ export async function captureAllVariants(
   const resolvedAuth = projectConfig?.auth
     ? resolveAuth(projectConfig.auth, projectRoot)
     : null;
+
+  // Lazy-load POM modules if the caller didn't hand them in pre-loaded.
+  // Main pipeline pre-loads during validation; tests can call captureAllVariants
+  // with `loadedPoms` unset and we'll resolve here.
+  const poms = loadedPoms ?? loadPomModules(projectConfig?.poms, projectRoot);
 
   try {
     for (const scenario of scenarios) {
@@ -259,7 +280,8 @@ export async function captureAllVariants(
             baseUrl,
             outputDir,
             projectConfig,
-            storageStatePath
+            storageStatePath,
+            poms
           );
           results.push(result);
         }

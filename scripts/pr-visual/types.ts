@@ -92,12 +92,20 @@ export interface ScenarioStep {
     | "wait"
     | "scroll"
     | "screenshot"
-    | "highlight";
+    | "highlight"
+    | "pom";
   selector?: string;
   value?: string;
   url?: string;
   duration?: number;
   caption: string;
+  /** POM step: name of the module registered in `ProjectConfig.poms`. */
+  page?: string;
+  /** POM step: named function exported by the POM module. Called with
+   *  `(page, ...args)`. */
+  method?: string;
+  /** POM step: positional args forwarded after the Playwright `Page`. */
+  args?: unknown[];
   /** Pacing hint governing the post-action hold time.
    *  @default "normal" */
   pacing?: Pacing;
@@ -256,6 +264,12 @@ export interface ProjectConfig {
   /** Optional authenticated demo configuration (profile system + storage
    *  state loader). Scenarios opt in via `scenario.profile`. */
   auth?: AuthConfig;
+
+  /** Page Object Model registry. Keys are names referenced from `pom`
+   *  scenario steps; values are module paths (absolute or relative to the
+   *  project root). Each module exports named functions shaped as
+   *  `(page: Page, ...args: unknown[]) => Promise<void> | void`. */
+  poms?: Record<string, string>;
 }
 
 export interface VideoConfig {
