@@ -26,3 +26,13 @@ Releases are automated by `.github/workflows/release.yml`. The workflow runs aft
 - [ ] Bump `version` in `.claude-plugin/plugin.json` to the same value.
 - [ ] Bump both `version` fields in `.claude-plugin/marketplace.json` to the same value.
 - [ ] Add a `CHANGELOG.md` entry describing what's in the release.
+
+## Commit messages — avoid `[skip ci]`
+
+GitHub Actions matches `[skip ci]` (and `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`) anywhere in a push's commit message — subject **or** body. A squash merge concatenates every commit on the branch into the merge commit body by default, so even a quoted or illustrative mention in a PR description or commit body will silently skip CI on `master`.
+
+Rules:
+
+- **Do not write `[skip ci]` or its aliases in commit messages or PR descriptions**, even in quotes, code fences, or "why we don't use this" explanations. Paraphrase instead (e.g., "the skip-ci token").
+- **If you must reference it, use a Zero-Width-Space or similar break** (e.g., `skip ci` with a space) so the token no longer matches.
+- A merge that silently skips CI also skips the release workflow, because Release runs via `workflow_run` on CI. The fix is a new PR whose merge triggers CI normally.
