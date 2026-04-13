@@ -60,6 +60,18 @@ export interface CompositionInput {
   mobileHeight?: number;
   /** Composition layout for the mobile companion. */
   mobileLayout?: "side-by-side" | "pip" | "sequential";
+  /** Voice-over clips. Each entry anchors a per-step audio file to the
+   *  start of that scenario step on the canvas timeline. */
+  voiceOverClips?: VoiceOverClip[];
+}
+
+export interface VoiceOverClip {
+  /** Filename (relative to the Remotion bundle's `public/`) of the MP3. */
+  src: string;
+  /** Scenario step index this clip belongs to (0-based). */
+  stepIndex: number;
+  /** Duration of the clip in seconds (used to size the Remotion Sequence). */
+  durationSec: number;
 }
 
 /** Runtime sanity check used by the renderer entry. Throws on missing

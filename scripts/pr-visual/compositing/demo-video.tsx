@@ -1,4 +1,4 @@
-import { AbsoluteFill, Sequence } from "remotion";
+import { AbsoluteFill, Audio, Sequence, staticFile } from "remotion";
 import { CaptionBar } from "./caption-bar.js";
 import { IntroSequence } from "./intro-sequence.js";
 import { OutroSequence } from "./outro-sequence.js";
@@ -37,6 +37,8 @@ export function DemoVideo(props: CompositionInput) {
     mobileLayout,
     desktopVideoWidth,
     desktopVideoHeight,
+    voiceOverClips,
+    fps,
   } = props;
 
   // Crossfade overlap: intro/video and video/outro each overlap by
@@ -67,6 +69,33 @@ export function DemoVideo(props: CompositionInput) {
           sprintLabel={sprintLabel}
         />
       </Sequence>
+
+      {/* Voice-over clips. Each Audio is anchored to the start of the step
+          it narrates, relative to the recorded video's timeline (which
+          begins at `videoStart` after the intro). */}
+      {voiceOverClips && stepTimestamps
+        ? voiceOverClips.map((clip) => {
+            const stepStartMs =
+              clip.stepIndex > 0
+                ? (stepTimestamps[clip.stepIndex - 1] ?? 0)
+                : 0;
+            const startFrame =
+              videoStart + Math.round((stepStartMs / 1000) * fps);
+            const durationFrames = Math.max(
+              1,
+              Math.ceil(clip.durationSec * fps)
+            );
+            return (
+              <Sequence
+                key={`vo-${clip.stepIndex}`}
+                from={startFrame}
+                durationInFrames={durationFrames}
+              >
+                <Audio src={staticFile(clip.src)} />
+              </Sequence>
+            );
+          })
+        : null}
 
       <Sequence from={videoStart} durationInFrames={videoDurationFrames}>
         <AbsoluteFill>

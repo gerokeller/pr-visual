@@ -6,6 +6,7 @@ import { generateScenarios } from "./scenario-generator.js";
 import { validateScenarios } from "./scenario-validator.js";
 import { resolveAuth, validateStorageStates } from "./auth.js";
 import { loadPomModules } from "./pom.js";
+import { DEFAULT_CACHE_DIR, generateVoiceOver } from "./voiceover.js";
 import { captureAllVariants } from "./capture.js";
 import { annotateScreenshots } from "./annotate/screenshots.js";
 import { burnCaptions } from "./annotate/video.js";
@@ -236,8 +237,11 @@ async function run(): Promise<void> {
     // `mobile.enabled` implies `compositing` is on.
     let compositedVideoPath: string | null = null;
     const mobileEnabled = runtime.project.video?.mobile?.enabled === true;
+    const voiceOverEnabled = runtime.project.voiceover?.enabled === true;
     const compositingEnabled =
-      runtime.project.video?.compositing === "remotion" || mobileEnabled;
+      runtime.project.video?.compositing === "remotion" ||
+      mobileEnabled ||
+      voiceOverEnabled;
     if (compositingEnabled) {
       console.log("\n[3b/4] Compositing video (Remotion)...");
       if (mobileEnabled) {
@@ -295,6 +299,36 @@ async function run(): Promise<void> {
             }
           }
 
+          // Optional voice-over generation — produces per-step MP3 clips
+          // that the compositor mixes into the final MP4.
+          let voClips: Awaited<ReturnType<typeof generateVoiceOver>>["clips"] =
+            [];
+          if (voiceOverEnabled) {
+            try {
+              console.log("  Generating voice-over...");
+              const cacheDir = path.resolve(
+                runCtx.rootDir,
+                runtime.project.voiceover?.cacheDir ?? DEFAULT_CACHE_DIR
+              );
+              const res = await generateVoiceOver({
+                texts: heroScenario.steps.map((s) => s.caption ?? null),
+                cacheDir,
+                ...(runtime.project.voiceover?.provider
+                  ? { provider: runtime.project.voiceover.provider }
+                  : {}),
+                ...(runtime.project.voiceover?.voice
+                  ? { voice: runtime.project.voiceover.voice }
+                  : {}),
+              });
+              voClips = res.clips;
+            } catch (err) {
+              console.error("  Voice-over generation failed:", err);
+              console.error(
+                "  Continuing without voice-over; composited MP4 will be silent."
+              );
+            }
+          }
+
           if (!mobileFailed) {
             const compose = await composeVideo({
               project: runtime.project,
@@ -310,6 +344,15 @@ async function run(): Promise<void> {
                       height: mobilePass.height,
                       layout: mobilePass.layout,
                     },
+                  }
+                : {}),
+              ...(voClips.length > 0
+                ? {
+                    voiceOverClips: voClips.map((c) => ({
+                      path: c.path,
+                      stepIndex: c.stepIndex,
+                      durationSec: c.durationSec,
+                    })),
                   }
                 : {}),
             });

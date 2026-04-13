@@ -351,7 +351,7 @@ export async function initConfig(projectRoot: string): Promise<void> {
     "  Review and adjust the config for your project, then commit it."
   );
 
-  ensureGitignoreEntries(projectRoot, [".pr-visual/auth/"]);
+  ensureGitignoreEntries(projectRoot, [".pr-visual/auth/", ".pr-visual/tts/"]);
 }
 
 /** Append the listed entries to `.gitignore` if not already present. Creates

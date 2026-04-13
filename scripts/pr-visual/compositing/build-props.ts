@@ -18,6 +18,13 @@ export interface MobileCompositeInput {
   layout: "side-by-side" | "pip" | "sequential";
 }
 
+export interface VoiceOverInput {
+  /** Filename of the staged MP3 relative to the Remotion `public/`. */
+  src: string;
+  stepIndex: number;
+  durationSec: number;
+}
+
 export interface BuildPropsArgs {
   /** Captured variant whose video we are compositing (typically desktop+light). */
   result: CaptureResult;
@@ -31,12 +38,14 @@ export interface BuildPropsArgs {
   /** Optional mobile companion. When present, the composition includes
    *  per-layout mobile chrome and may widen the canvas. */
   mobile?: MobileCompositeInput;
+  /** Optional voice-over clips (already staged under the bundle's public/). */
+  voiceOverClips?: VoiceOverInput[];
 }
 
 /** Convert pr-visual's CaptureResult + VideoConfig into the CompositionInput
  *  consumed by the Remotion composition. */
 export function buildCompositionInput(args: BuildPropsArgs): CompositionInput {
-  const { result, scenario, video, videoSrc, mobile } = args;
+  const { result, scenario, video, videoSrc, mobile, voiceOverClips } = args;
 
   const fps = FPS;
 
@@ -123,5 +132,6 @@ export function buildCompositionInput(args: BuildPropsArgs): CompositionInput {
           mobileLayout: mobile.layout,
         }
       : {}),
+    ...(voiceOverClips && voiceOverClips.length > 0 ? { voiceOverClips } : {}),
   };
 }

@@ -31,6 +31,15 @@ export interface ComposeMobile {
   layout: "side-by-side" | "pip" | "sequential";
 }
 
+export interface ComposeVoiceOverClip {
+  /** Absolute path to the MP3 produced by `generateVoiceOver`. */
+  path: string;
+  /** Scenario step index this clip belongs to (0-based). */
+  stepIndex: number;
+  /** Duration of the clip in seconds. */
+  durationSec: number;
+}
+
 export interface ComposeArgs {
   /** Project configuration. Compositing only runs when
    *  `project.video?.compositing === "remotion"` OR when a `mobile` companion
@@ -47,6 +56,9 @@ export interface ComposeArgs {
   /** Optional mobile companion produced by `runMobilePass`. When present,
    *  the composition includes mobile chrome per the configured layout. */
   mobile?: ComposeMobile;
+  /** Optional voice-over clips produced by `generateVoiceOver`. Each is
+   *  anchored to the start of its step on the canvas timeline. */
+  voiceOverClips?: ComposeVoiceOverClip[];
 }
 
 export interface ComposeResult {
@@ -87,11 +99,14 @@ function probePeerDep(name: string): boolean {
  *  `{ outputPath: null, fellBack: true }` so the caller can keep the
  *  captioned MP4 as the final artifact. */
 export async function composeVideo(args: ComposeArgs): Promise<ComposeResult> {
-  // mobile.enabled implies compositing — avoids the "I enabled mobile but
-  // got no composite" gotcha.
+  // mobile.enabled and voiceover.enabled both imply compositing — avoids
+  // the "I enabled X but got no composite" gotcha.
   const mobileImpliesCompositing = args.project.video?.mobile?.enabled === true;
+  const voiceOverImpliesCompositing = args.project.voiceover?.enabled === true;
   const compositingRequested =
-    args.project.video?.compositing === "remotion" || mobileImpliesCompositing;
+    args.project.video?.compositing === "remotion" ||
+    mobileImpliesCompositing ||
+    voiceOverImpliesCompositing;
   if (!compositingRequested) {
     return { outputPath: null, fellBack: false };
   }
@@ -106,6 +121,15 @@ export async function composeVideo(args: ComposeArgs): Promise<ComposeResult> {
   }
 
   const { renderComposition } = await import("./render.js");
+
+  const voiceOverInputs = args.voiceOverClips?.length
+    ? args.voiceOverClips.map((clip) => ({
+        src: `vo-step-${String(clip.stepIndex).padStart(2, "0")}-${path.basename(clip.path)}`,
+        stepIndex: clip.stepIndex,
+        durationSec: clip.durationSec,
+      }))
+    : undefined;
+
   const inputProps = buildCompositionInput({
     result: args.result,
     scenario: args.scenario,
@@ -121,6 +145,7 @@ export async function composeVideo(args: ComposeArgs): Promise<ComposeResult> {
           },
         }
       : {}),
+    ...(voiceOverInputs ? { voiceOverClips: voiceOverInputs } : {}),
   });
 
   const { outputPath } = await renderComposition({
@@ -128,6 +153,9 @@ export async function composeVideo(args: ComposeArgs): Promise<ComposeResult> {
     outputDir: args.outputDir,
     inputProps,
     ...(args.mobile ? { mobileVideoPath: args.mobile.videoPath } : {}),
+    ...(args.voiceOverClips
+      ? { voiceOverSourcePaths: args.voiceOverClips.map((c) => c.path) }
+      : {}),
   });
 
   return { outputPath, fellBack: false };
