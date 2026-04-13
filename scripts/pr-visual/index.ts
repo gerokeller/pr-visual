@@ -7,6 +7,7 @@ import { validateScenarios } from "./scenario-validator.js";
 import { captureAllVariants } from "./capture.js";
 import { annotateScreenshots } from "./annotate/screenshots.js";
 import { burnCaptions } from "./annotate/video.js";
+import { composeVideo } from "./compositing/index.js";
 import { patchPRBodyWithScreenshots, addVideoComment } from "./pr-attach.js";
 import { loadProjectConfig, resolveBaseUrl } from "./config.js";
 import {
@@ -211,6 +212,43 @@ async function run(): Promise<void> {
       console.log(`  Captioned ${captionedVideos.length} video(s)`);
     }
 
+    // 6c. Optional Remotion compositing — desktop+light variant only.
+    let compositedVideoPath: string | null = null;
+    if (runtime.project.video?.compositing === "remotion") {
+      console.log("\n[3b/4] Compositing video (Remotion)...");
+      const heroResult = results.find(
+        (r) => r.viewport.name === "desktop" && r.colorScheme === "light"
+      );
+      if (!heroResult) {
+        console.warn(
+          "  No desktop+light variant captured — skipping compositing."
+        );
+      } else {
+        const heroIndex = results.indexOf(heroResult);
+        const heroCaptioned = captionedVideos[heroIndex];
+        if (!heroCaptioned) {
+          console.warn(
+            "  Captioned MP4 missing for desktop+light — skipping compositing."
+          );
+        } else {
+          const heroScenario =
+            scenarios.find((s) => s.name === heroResult.captions[0]?.text) ??
+            scenarios[0]!;
+          const compose = await composeVideo({
+            project: runtime.project,
+            sourceVideoPath: heroCaptioned,
+            outputDir: path.dirname(heroCaptioned),
+            result: heroResult,
+            scenario: heroScenario,
+          });
+          if (compose.outputPath) {
+            compositedVideoPath = compose.outputPath;
+            console.log(`  Composited: ${path.basename(compose.outputPath)}`);
+          }
+        }
+      }
+    }
+
     // 7. Copy artifacts back to the main repo if using worktree
     if (worktree) {
       const mainOutputDir = path.resolve(
@@ -229,6 +267,12 @@ async function run(): Promise<void> {
           repoRoot
         );
       }
+      if (compositedVideoPath) {
+        compositedVideoPath = compositedVideoPath.replace(
+          worktree.rootDir,
+          repoRoot
+        );
+      }
     }
 
     // 8. Attach to PR
@@ -236,8 +280,20 @@ async function run(): Promise<void> {
       console.log("\n[4/4] Attaching to PR...");
       patchPRBodyWithScreenshots(runtime.prNumber, annotated, repoRoot);
 
-      for (const videoPath of captionedVideos) {
-        const label = path.basename(path.dirname(videoPath));
+      // Prefer the composited MP4 for the desktop+light slot when available;
+      // fall back to the captioned MP4 for every other variant.
+      const heroIndex = results.findIndex(
+        (r) => r.viewport.name === "desktop" && r.colorScheme === "light"
+      );
+      for (let i = 0; i < captionedVideos.length; i++) {
+        const videoPath =
+          i === heroIndex && compositedVideoPath
+            ? compositedVideoPath
+            : captionedVideos[i]!;
+        const label =
+          i === heroIndex && compositedVideoPath
+            ? "desktop-light (composited)"
+            : path.basename(path.dirname(videoPath));
         addVideoComment(runtime.prNumber, videoPath, label);
       }
     } else {

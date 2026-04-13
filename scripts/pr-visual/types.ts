@@ -238,6 +238,31 @@ export interface ProjectConfig {
    *  click ripples, highlight spotlight). All flags default to `false`
    *  so existing users see no change in behavior. */
   overlays?: OverlaysConfig;
+
+  /** Optional video production / Remotion compositing settings. */
+  video?: VideoConfig;
+}
+
+export interface VideoConfig {
+  /** Compositing pipeline. `"none"` (default) uses the existing ffmpeg
+   *  ASS-burn path. `"remotion"` runs the recorded clip through a Remotion
+   *  composition (intro + crossfades + caption pill + outro). Requires
+   *  `remotion`, `@remotion/bundler`, `@remotion/renderer`, `react`,
+   *  `react-dom` to be installed; otherwise falls back to the captioned MP4
+   *  with a warning.
+   *  @default "none" */
+  compositing?: "none" | "remotion";
+  /** Brand accent color used by intro/outro/caption-pill chrome.
+   *  @default "#3b82f6" */
+  brandColor?: string;
+  /** Optional category label rendered as a glassmorphism badge. */
+  category?: string;
+  /** Optional sprint / release label rendered subtly in the intro. */
+  sprintLabel?: string;
+  /** Optional org / team name rendered in the outro footer. */
+  orgName?: string;
+  /** Optional bullet list rendered as a "Key Highlights" card in the outro. */
+  highlights?: string[];
 }
 
 export interface OverlaysConfig {
