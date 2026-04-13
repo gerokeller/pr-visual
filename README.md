@@ -986,6 +986,15 @@ npm test                # vitest run (unit + integration + e2e)
 
 CI runs `typecheck`, `lint`, and the full `test` suite on every PR and on push to `master` (Node 20). All warnings are treated as errors.
 
+## Releases
+
+Releases are created automatically by `.github/workflows/release.yml` on every push to `master`.
+
+- **Patch bumps are automatic.** Merge a PR; the workflow reads the latest `v*` tag, increments the patch segment, tags the commit, and publishes a GitHub Release with auto-generated notes. No code change required.
+- **Minor and major bumps are manual.** Before merging, bump `version` in `package.json` to the target `MAJOR.MINOR.0` (e.g., `1.1.3` → `1.2.0`). The workflow detects that `package.json` is ahead of the latest tag and uses that version instead of auto-incrementing. Optionally update `CHANGELOG.md` in the same PR.
+- **Source of truth for the released version is the latest `v*` git tag**, not `package.json`. `package.json` only needs to move when you want a minor or major bump.
+- Release notes come from GitHub's auto-generated changelog (merged PRs and commits since the previous tag). `CHANGELOG.md` is maintained by hand for the human-readable history; keep it in sync when you make a minor/major bump.
+
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
