@@ -66,6 +66,10 @@ export interface Scenario {
    *  scenario and surfaced by the Story Director (#8) and Remotion intro
    *  (#2); no direct rendering in the annotation layer yet. */
   persona?: string;
+  /** Auth profile name. References a key in `ProjectConfig.auth.profiles`;
+   *  the corresponding storage state file is loaded into every Playwright
+   *  context for this scenario (matrix variants + mobile composite pass). */
+  profile?: string;
 }
 
 export type Pacing = "quick" | "normal" | "slow" | "dramatic";
@@ -248,6 +252,10 @@ export interface ProjectConfig {
 
   /** Optional video production / Remotion compositing settings. */
   video?: VideoConfig;
+
+  /** Optional authenticated demo configuration (profile system + storage
+   *  state loader). Scenarios opt in via `scenario.profile`. */
+  auth?: AuthConfig;
 }
 
 export interface VideoConfig {
@@ -274,6 +282,26 @@ export interface VideoConfig {
    *  runs a dedicated mobile pass after the main matrix and composites both
    *  streams into one MP4. Implies `compositing: "remotion"`. */
   mobile?: MobileVideoConfig;
+}
+
+/** Authenticated demo configuration. Profiles map a name to a Playwright
+ *  storage state JSON file. Scenarios opt in via `scenario.profile`. The
+ *  optional `tokenGenerator` runs after `setup` and before the dev server
+ *  starts so apps can refresh storage state for each run. */
+export interface AuthConfig {
+  /** Directory containing storage state files. Profile paths in
+   *  `profiles` are resolved relative to this directory.
+   *  Overridable via the `PR_VISUAL_AUTH_DIR` env var.
+   *  @default ".pr-visual/auth" */
+  storageStateDir?: string;
+  /** Named profiles. Keys are referenced by `Scenario.profile`; values are
+   *  paths (relative to `storageStateDir`) of Playwright storage state JSON
+   *  files. Profile keys must be unique. */
+  profiles?: Record<string, string>;
+  /** Optional command that produces the storage state files. Runs after
+   *  `setup` and before `devServer`. Templated with `{{runId}}`,
+   *  `{{port}}`, `{{rootDir}}` like other lifecycle steps. */
+  tokenGenerator?: LifecycleStep;
 }
 
 export interface MobileVideoConfig {

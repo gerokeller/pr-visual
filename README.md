@@ -204,6 +204,9 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `video.mobile.viewport` | `{ width, height }` | `{ 390, 844 }` | Mobile pass viewport |
 | `video.mobile.deviceScaleFactor` | `number` | `3` | Mobile pass DPR |
 | `video.mobile.layout` | `"side-by-side" \| "pip" \| "sequential"` | `"side-by-side"` | Composition layout |
+| `auth.storageStateDir` | `string` | `".pr-visual/auth"` | Directory holding Playwright storage state files (see [Authenticated demos](#authenticated-demos)) |
+| `auth.profiles` | `Record<string, string>` | — | Named profiles → relative storage state file paths |
+| `auth.tokenGenerator` | `LifecycleStep` | — | Optional command run after `setup` and before `devServer` to refresh storage state |
 
 ### Minimal config examples
 
@@ -519,6 +522,116 @@ If the mobile pass throws (selector missing, navigation fails), the
 compositing step aborts and the captioned MP4 stays as the final artifact —
 the run otherwise succeeds.
 
+## Authenticated demos
+
+pr-visual is framework-agnostic about auth: you supply Playwright **storage
+state JSON files**, name them as profiles in `.pr-visual.config.ts`, and
+scenarios opt in via `scenario.profile`. The captured matrix variants and the
+mobile composite pass all load the same storage state.
+
+```typescript
+export default {
+  devServer: { command: "npm run dev" },
+  auth: {
+    storageStateDir: ".pr-visual/auth",  // default
+    profiles: {
+      admin: "admin.json",
+      viewer: "viewer.json",
+    },
+    // Optional — runs after `setup` and before `devServer`. Use it to
+    // refresh storage state per run; pr-visual just calls the command.
+    tokenGenerator: {
+      name: "Refresh storage state",
+      command: "node scripts/refresh-auth.mjs",
+    },
+  },
+} satisfies ProjectConfig;
+```
+
+```ts
+// In your scenario:
+{
+  name: "Admin dashboard tour",
+  description: "...",
+  profile: "admin",
+  steps: [ /* ... */ ],
+}
+```
+
+`npx pr-visual init` adds `.pr-visual/auth/` to `.gitignore` automatically —
+storage state files contain session tokens.
+
+### Generating storage state
+
+How you produce the JSON files is up to you. Two common patterns:
+
+**Pattern 1: Playwright login script**
+
+Run a one-off Playwright script that drives the login UI and saves the
+context state:
+
+```ts
+// scripts/refresh-auth.mjs
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const ctx = await browser.newContext();
+const page = await ctx.newPage();
+await page.goto("http://localhost:3000/login");
+await page.getByLabel("Email").fill("admin@example.com");
+await page.getByLabel("Password").fill(process.env.ADMIN_PASSWORD);
+await page.getByRole("button", { name: "Sign in" }).click();
+await page.waitForURL("**/dashboard");
+await ctx.storageState({ path: ".pr-visual/auth/admin.json" });
+await browser.close();
+```
+
+**Pattern 2: Supabase admin API (no browser needed)**
+
+```ts
+// scripts/refresh-auth.mjs
+import fs from "node:fs";
+import { createClient } from "@supabase/supabase-js";
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+const { data, error } = await supabase.auth.admin.generateLink({
+  type: "magiclink",
+  email: "admin@example.com",
+});
+if (error) throw error;
+// Build a Playwright storage-state JSON with the supabase localStorage entry,
+// keyed `sb-<project-ref>-auth-token`. Shape per Supabase JS docs.
+const session = { access_token: data.properties.action_link, /* ... */ };
+const projectRef = new URL(process.env.SUPABASE_URL).hostname.split(".")[0];
+fs.writeFileSync(
+  ".pr-visual/auth/admin.json",
+  JSON.stringify({
+    cookies: [],
+    origins: [{
+      origin: "http://localhost:3000",
+      localStorage: [{
+        name: `sb-${projectRef}-auth-token`,
+        value: JSON.stringify({ currentSession: session }),
+      }],
+    }],
+  }),
+);
+```
+
+Anything that writes a Playwright storage-state JSON works. The
+`tokenGenerator` step is templated with `{{runId}}`, `{{port}}`, `{{rootDir}}`
+like other lifecycle steps.
+
+### Validation
+
+After the generator runs, pr-visual verifies every configured profile points
+at a readable JSON file. A missing or malformed file fails the run before
+capture starts, so a silently-broken generator surfaces immediately.
+
+The `PR_VISUAL_AUTH_DIR` env var overrides `storageStateDir` — useful when
+storage state is generated outside the repo.
+
 ## CLI commands
 
 ```bash
@@ -555,6 +668,7 @@ The recorder also registers signal handlers for SIGINT and SIGTERM, so a normal 
 | `PR_VISUAL_CONFIG` | — | Explicit path to config file |
 | `PR_VISUAL_NO_ISOLATE` | — | Set to `1` to skip worktree isolation |
 | `PR_VISUAL_QUALITY` | — | Desktop quality preset override: `720p`, `1080p`, `2k`, `4k`. Takes precedence over scenario and project config. |
+| `PR_VISUAL_AUTH_DIR` | — | Override `auth.storageStateDir`. Useful when storage state is generated outside the repo. |
 
 ## How it works
 

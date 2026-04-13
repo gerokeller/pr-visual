@@ -214,6 +214,15 @@ export async function bringUp(
 
   runSetupSteps(config.setup ?? [], ctx);
 
+  // Auth token generator runs between setup and dev server. Lets apps refresh
+  // Playwright storage state (e.g., via Supabase admin API) before captures
+  // start.
+  if (config.auth?.tokenGenerator) {
+    console.log("  Running auth token generator...");
+    runStep(config.auth.tokenGenerator, ctx);
+    console.log("  Auth token generator complete");
+  }
+
   const devServer = startDevServer(config.devServer, ctx);
 
   const ready = await waitForReady(baseUrl, config.readiness ?? {});

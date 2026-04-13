@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { generateScenarios } from "./scenario-generator.js";
 import { validateScenarios } from "./scenario-validator.js";
+import { resolveAuth, validateStorageStates } from "./auth.js";
 import { captureAllVariants } from "./capture.js";
 import { annotateScreenshots } from "./annotate/screenshots.js";
 import { burnCaptions } from "./annotate/video.js";
@@ -168,8 +169,19 @@ async function run(): Promise<void> {
       runtime.prBody,
       runtime.project
     );
-    validateScenarios(scenarios);
+    validateScenarios(scenarios, {
+      ...(runtime.project.auth ? { auth: runtime.project.auth } : {}),
+    });
     console.log(`  Generated ${scenarios.length} scenario(s)`);
+
+    // Verify configured auth profiles point at readable JSON storage state
+    // files. Done here (after lifecycle's tokenGenerator has run, before
+    // capture) so a silently-failing generator surfaces immediately.
+    const scenariosUseAuth = scenarios.some((s) => s.profile !== undefined);
+    if (scenariosUseAuth && runtime.project.auth) {
+      const resolved = resolveAuth(runtime.project.auth, runCtx.rootDir);
+      validateStorageStates(resolved);
+    }
 
     // 5. Capture screenshots and video
     console.log("\n[2/4] Capturing screenshots and video...");
@@ -177,7 +189,8 @@ async function run(): Promise<void> {
       scenarios,
       runtime.baseUrl,
       runtime.outputDir,
-      runtime.project
+      runtime.project,
+      runCtx.rootDir
     );
     const totalScreenshots = results.reduce(
       (n, r) => n + r.screenshots.length,
@@ -254,11 +267,17 @@ async function run(): Promise<void> {
           if (mobileEnabled) {
             try {
               console.log("  Running mobile composite pass...");
+              const mobileStoragePath =
+                heroScenario.profile && runtime.project.auth
+                  ? resolveAuth(runtime.project.auth, runCtx.rootDir)
+                      .profilePaths[heroScenario.profile]
+                  : undefined;
               mobilePass = await runMobilePass(
                 heroScenario,
                 runtime.baseUrl,
                 runtime.outputDir,
-                runtime.project
+                runtime.project,
+                mobileStoragePath
               );
             } catch (err) {
               mobileFailed = true;
