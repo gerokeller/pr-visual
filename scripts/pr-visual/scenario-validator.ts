@@ -1,3 +1,4 @@
+import type { LoadedPoms } from "./pom.js";
 import {
   BEATS,
   EMPHASIS_MODES,
@@ -10,6 +11,10 @@ export interface ValidationOptions {
   /** When provided, scenarios that reference a profile must match a key in
    *  `auth.profiles`. Profiles unknown to the project config hard-fail. */
   auth?: AuthConfig;
+  /** Loaded POM modules keyed by `page` name. When supplied, `pom` steps
+   *  are validated against the registered methods. Without this, a `pom`
+   *  step fails validation because there are no known modules. */
+  poms?: LoadedPoms;
 }
 
 /**
@@ -50,6 +55,37 @@ export function validateScenarios(
         throw new Error(
           `Missing selector for highlight step at ${stepWhere}. The highlight action requires a CSS selector.`
         );
+      }
+      if (step.action === "pom") {
+        if (!step.page) {
+          throw new Error(
+            `Missing \`page\` on pom step at ${stepWhere}. Specify the POM name registered in \`ProjectConfig.poms\`.`
+          );
+        }
+        if (!step.method) {
+          throw new Error(
+            `Missing \`method\` on pom step at ${stepWhere}. Specify the function name exported by the POM module.`
+          );
+        }
+        const poms = options.poms;
+        if (!poms) {
+          throw new Error(
+            `${where} uses a pom step but no POM modules are configured. Add a \`poms\` block to your .pr-visual.config.ts.`
+          );
+        }
+        const mod = poms[step.page];
+        if (!mod) {
+          const known = Object.keys(poms).join(", ") || "<none configured>";
+          throw new Error(
+            `Unknown POM page "${step.page}" at ${stepWhere}. Known pages: ${known}.`
+          );
+        }
+        if (typeof mod[step.method] !== "function") {
+          const methods = Object.keys(mod).join(", ") || "<none exported>";
+          throw new Error(
+            `Unknown POM method "${step.page}.${step.method}" at ${stepWhere}. Available methods: ${methods}.`
+          );
+        }
       }
       if (step.pacing !== undefined && !PACING_MODES.includes(step.pacing)) {
         throw new Error(

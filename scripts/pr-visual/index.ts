@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { generateScenarios } from "./scenario-generator.js";
 import { validateScenarios } from "./scenario-validator.js";
 import { resolveAuth, validateStorageStates } from "./auth.js";
+import { loadPomModules } from "./pom.js";
 import { captureAllVariants } from "./capture.js";
 import { annotateScreenshots } from "./annotate/screenshots.js";
 import { burnCaptions } from "./annotate/video.js";
@@ -169,8 +170,12 @@ async function run(): Promise<void> {
       runtime.prBody,
       runtime.project
     );
+    // Eagerly load POM modules so `validateScenarios` can check both the
+    // `page` name and the `method` name before capture starts.
+    const loadedPoms = loadPomModules(runtime.project.poms, runCtx.rootDir);
     validateScenarios(scenarios, {
       ...(runtime.project.auth ? { auth: runtime.project.auth } : {}),
+      poms: loadedPoms,
     });
     console.log(`  Generated ${scenarios.length} scenario(s)`);
 
@@ -190,7 +195,8 @@ async function run(): Promise<void> {
       runtime.baseUrl,
       runtime.outputDir,
       runtime.project,
-      runCtx.rootDir
+      runCtx.rootDir,
+      loadedPoms
     );
     const totalScreenshots = results.reduce(
       (n, r) => n + r.screenshots.length,
@@ -277,7 +283,8 @@ async function run(): Promise<void> {
                 runtime.baseUrl,
                 runtime.outputDir,
                 runtime.project,
-                mobileStoragePath
+                mobileStoragePath,
+                loadedPoms
               );
             } catch (err) {
               mobileFailed = true;

@@ -187,4 +187,117 @@ describe("validateScenarios()", () => {
       expect(() => validateScenarios([scenario()])).not.toThrow();
     });
   });
+
+  describe("pom step cross-check", () => {
+    const loaded = {
+      dashboard: {
+        login: () => undefined,
+        openHome: () => undefined,
+      },
+    };
+
+    it("accepts a pom step with known page + method", () => {
+      expect(() =>
+        validateScenarios(
+          [
+            scenario({
+              steps: [
+                {
+                  action: "pom",
+                  page: "dashboard",
+                  method: "login",
+                  args: ["alice"],
+                  caption: "Log in as alice",
+                },
+              ],
+            }),
+          ],
+          { poms: loaded }
+        )
+      ).not.toThrow();
+    });
+
+    it("rejects a pom step when no poms are configured", () => {
+      expect(() =>
+        validateScenarios([
+          scenario({
+            steps: [
+              {
+                action: "pom",
+                page: "dashboard",
+                method: "login",
+                caption: "x",
+              },
+            ],
+          }),
+        ])
+      ).toThrowError(/no POM modules are configured/);
+    });
+
+    it("rejects a pom step with an unknown page", () => {
+      expect(() =>
+        validateScenarios(
+          [
+            scenario({
+              steps: [
+                {
+                  action: "pom",
+                  page: "ghost",
+                  method: "login",
+                  caption: "x",
+                },
+              ],
+            }),
+          ],
+          { poms: loaded }
+        )
+      ).toThrowError(/Unknown POM page "ghost".*Known pages: dashboard/);
+    });
+
+    it("rejects a pom step with an unknown method", () => {
+      expect(() =>
+        validateScenarios(
+          [
+            scenario({
+              steps: [
+                {
+                  action: "pom",
+                  page: "dashboard",
+                  method: "ghost",
+                  caption: "x",
+                },
+              ],
+            }),
+          ],
+          { poms: loaded }
+        )
+      ).toThrowError(
+        /Unknown POM method "dashboard\.ghost".*Available methods: login, openHome/
+      );
+    });
+
+    it("rejects a pom step missing page or method", () => {
+      expect(() =>
+        validateScenarios(
+          [
+            scenario({
+              steps: [{ action: "pom", method: "login", caption: "x" }],
+            }),
+          ],
+          { poms: loaded }
+        )
+      ).toThrowError(/Missing `page` on pom step/);
+
+      expect(() =>
+        validateScenarios(
+          [
+            scenario({
+              steps: [{ action: "pom", page: "dashboard", caption: "x" }],
+            }),
+          ],
+          { poms: loaded }
+        )
+      ).toThrowError(/Missing `method` on pom step/);
+    });
+  });
 });

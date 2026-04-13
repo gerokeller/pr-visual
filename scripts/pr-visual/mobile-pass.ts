@@ -18,6 +18,7 @@ import {
   injectCustomCursor,
   showClickIndicator,
 } from "./overlays.js";
+import { invokePom, type LoadedPoms } from "./pom.js";
 import type {
   MobileVideoConfig,
   ProjectConfig,
@@ -83,7 +84,8 @@ export async function runMobilePass(
   baseUrl: string,
   outputDir: string,
   projectConfig: ProjectConfig,
-  storageStatePath?: string
+  storageStatePath?: string,
+  loadedPoms?: LoadedPoms
 ): Promise<MobilePassResult | null> {
   const mobile = resolveMobileConfig(projectConfig.video?.mobile);
 
@@ -181,6 +183,11 @@ export async function runMobilePass(
             );
           } else if (step.duration) {
             await page.waitForTimeout(step.duration);
+          }
+          break;
+        case "pom":
+          if (loadedPoms) {
+            await invokePom(loadedPoms, page, step);
           }
           break;
         case "screenshot":

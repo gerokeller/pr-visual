@@ -207,6 +207,7 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `auth.storageStateDir` | `string` | `".pr-visual/auth"` | Directory holding Playwright storage state files (see [Authenticated demos](#authenticated-demos)) |
 | `auth.profiles` | `Record<string, string>` | — | Named profiles → relative storage state file paths |
 | `auth.tokenGenerator` | `LifecycleStep` | — | Optional command run after `setup` and before `devServer` to refresh storage state |
+| `poms` | `Record<string, string>` | — | Page Object Model registry. Keys are referenced from `pom` scenario steps (see [Page Object Models](#page-object-models)). Values are module paths relative to the project root. |
 
 ### Minimal config examples
 
@@ -631,6 +632,94 @@ capture starts, so a silently-broken generator surfaces immediately.
 
 The `PR_VISUAL_AUTH_DIR` env var overrides `storageStateDir` — useful when
 storage state is generated outside the repo.
+
+## Page Object Models
+
+Non-trivial real-world demos often need multi-step orchestration (dismiss a
+modal, wait for data, assert an intermediate state). Rather than duplicating
+that logic in every scenario, point pr-visual at your existing E2E Page
+Object Model modules:
+
+```typescript
+// .pr-visual.config.ts
+export default {
+  devServer: { command: "npm run dev" },
+  poms: {
+    dashboard: "./e2e/pages/dashboard.ts",
+    checkout: "./e2e/pages/checkout.ts",
+  },
+} satisfies ProjectConfig;
+```
+
+```ts
+// ./e2e/pages/dashboard.ts — pr-visual expects plain functions.
+// Each function receives the Playwright `Page` as the first argument
+// plus any user arguments defined on the scenario step.
+import type { Page } from "playwright";
+
+export async function login(page: Page, email: string): Promise<void> {
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(process.env.DEMO_PASSWORD!);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL("**/dashboard");
+}
+
+export async function openInbox(page: Page): Promise<void> {
+  await page.getByRole("link", { name: "Inbox" }).click();
+  await page.waitForSelector("[data-testid=inbox-list]");
+}
+```
+
+Then use them in scenarios:
+
+```ts
+{
+  name: "Inbox tour",
+  description: "...",
+  steps: [
+    { action: "navigate", url: "/", caption: "Open the app" },
+    {
+      action: "pom",
+      page: "dashboard",
+      method: "login",
+      args: ["demo@example.com"],
+      caption: "Sign in",
+    },
+    {
+      action: "pom",
+      page: "dashboard",
+      method: "openInbox",
+      caption: "Open the inbox",
+    },
+    { action: "screenshot", caption: "Inbox view" },
+  ],
+}
+```
+
+### Contract
+
+- Each registered module exports **named functions** shaped as
+  `(page: Page, ...args: unknown[]) => void | Promise<void>`.
+- Classes are not supported directly (predictable stateless lifecycle). Wrap
+  them with a thin factory if you need class-based POMs.
+- `args` on the scenario step is an array forwarded positionally after
+  `page`. Omitted `args` means the function is called with just `(page)`.
+
+### Validation
+
+pr-visual loads POM modules eagerly at scenario-validation time, so unknown
+`page` names, unknown method names, and import failures surface as
+pre-capture errors instead of runtime crashes deep in the capture loop.
+
+### Overlay interaction
+
+- Custom cursor tracking (when `overlays.cursor: true`) works inside POM
+  methods automatically — the mousemove listener follows any
+  Playwright-driven movement.
+- Click ripples and highlight spotlights do **not** fire inside POM methods.
+  Those overlays are injected at the call site in pr-visual's step
+  executor, not globally. If you want a ripple on a POM-internal click,
+  add an explicit `click` step for that interaction instead.
 
 ## CLI commands
 

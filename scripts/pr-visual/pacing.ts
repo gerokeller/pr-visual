@@ -87,6 +87,10 @@ function actionBonusMs(step: ScenarioStep, ctx: PacingContext): number {
     case "highlight":
       // Matches demo-recorder's highlight bonus (800ms).
       return 800;
+    case "pom":
+      // POM methods typically orchestrate multiple sub-actions — give them
+      // the same breathing room as highlight.
+      return 800;
     case "wait":
     case "screenshot":
       return 0;
