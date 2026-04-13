@@ -1,6 +1,6 @@
 {
   "name": "pr-visual",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Visual PR documentation — AI-generated Playwright scenarios, annotated screenshots (desktop 2x + mobile 3x, light + dark), and walkthrough videos with burned-in captions.",
   "author": {
     "name": "Gero Keller",

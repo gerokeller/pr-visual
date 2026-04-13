@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Visual PR documentation plugins",
-    "version": "1.1.0"
+    "version": "1.1.1"
   },
   "plugins": [
     {
       "name": "pr-visual",
       "description": "AI-generated screenshots and walkthrough videos for pull requests: desktop + mobile, light + dark, annotated with captions.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "source": "./",
       "author": {
         "name": "Gero Keller",
