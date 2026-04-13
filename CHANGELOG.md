@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Remove `hooks` field from `plugin.json`; the default `hooks/hooks.json` is auto-loaded, so declaring it caused a duplicate-hooks load error reported by `/doctor`
 
+### Changed
+
+- CI runs inside `mcr.microsoft.com/playwright:v1.59.1-jammy` instead of installing Chromium + system fonts on every job, cutting roughly 4 minutes off typical runs
+
 ## [1.1.1] - 2026-04-13
 
 ### Fixed

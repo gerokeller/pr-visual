@@ -20,6 +20,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Playwright's official image ships Chromium, all system deps, ffmpeg,
+    # and Node 20 preinstalled — skips the slow apt-get font install that
+    # `playwright install-deps` would otherwise pull in on every run.
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-jammy
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,28 +38,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Cache Playwright browsers
-        id: playwright-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright Chromium + system deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright system deps (cached browser)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
-
-      - name: Install ffmpeg
-        # Required by the video annotator (subtitle burn) and by the
-        # voice-over pipeline (ffprobe duration probe + WAV/AIFF→MP3
-        # transcode). ubuntu-latest images include ffmpeg, but install
-        # explicitly to be deterministic across runner image updates.
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Typecheck
         run: npm run typecheck
