@@ -776,6 +776,60 @@ Piper and `say` emit WAV/AIFF and use `ffmpeg` / `ffprobe` to transcode to
 MP3 and measure duration. pr-visual already expects ffmpeg for subtitle
 burning, so there's no new prerequisite.
 
+## Story Director
+
+When `ANTHROPIC_API_KEY` (or `CLAUDE_PLUGIN_OPTION_ANTHROPIC_API_KEY`) is
+set, AI scenario generation runs through the **Story Director** instead of
+emitting flat step lists. The director picks one of four personas (`End
+User`, `Admin`, `New User`, `Stakeholder`) based on the PR content and
+drafts a three-act narrative arc:
+
+```
+Persona:   End User
+Setup:     A user opens the dashboard expecting today's metrics.
+Inciting:  They notice a new tile they have never seen before.
+Payoff:    Clicking the tile reveals a clearer breakdown of the data.
+Closing:   Users now answer the question without leaving the dashboard.
+```
+
+Each generated scenario carries the matching `persona` and every step
+arrives pre-populated with the right `beat` (`setup` / `action` / `payoff`
+/ `close`) and `emphasis`. The annotation layers from
+[Narrative beats](#narrative-beats) and [Adaptive pacing](#adaptive-pacing)
+then take over.
+
+When no API key is set, the run falls back to the static-routes scenarios
+(unchanged from before).
+
+### Brief cache
+
+The director caches each brief by `sha256(prDescription + diff)` to
+`.pr-visual/story/<hash>.json`. Re-running on an unchanged PR is free.
+`init` adds `.pr-visual/story/` to `.gitignore`.
+
+### `story` subcommand
+
+Inspect the brief without recording, or scaffold it to disk:
+
+```bash
+# Print the human-readable arc for the current branch's PR.
+npx pr-visual story
+
+# Same, against an explicit PR number.
+npx pr-visual story --pr 42
+
+# Machine-readable JSON to stdout.
+npx pr-visual story --pr 42 --json
+
+# Write the full {narrative, scenarios} brief to disk for editing.
+# Output: .pr-visual/story-scaffold.json
+npx pr-visual story --scaffold
+```
+
+The scaffold path is convenient for tweaking the arc by hand before
+re-running `pr-visual` — load the JSON yourself and pass it as a
+hand-authored scenario set.
+
 ## CLI commands
 
 ```bash
@@ -787,6 +841,7 @@ npx pr-visual [command]
 | `run` (default) | Execute the full capture pipeline |
 | `init` | Detect project setup and generate `.pr-visual.config.ts` |
 | `cleanup` | Remove orphaned worktrees, Docker projects, and stale directories |
+| `story` | Print or scaffold the [Story Director's](#story-director) brief without recording. Flags: `--pr <n>`, `--scaffold`, `--json`. |
 
 ## Cleanup
 

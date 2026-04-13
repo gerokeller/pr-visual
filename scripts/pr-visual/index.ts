@@ -2,7 +2,12 @@ import { execSync } from "node:child_process";
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { generateScenarios } from "./scenario-generator.js";
+import {
+  generateScenarios,
+  getGitDiff,
+  getPRDescription,
+} from "./scenario-generator.js";
+import { STORY_CACHE_DIR, directBrief, formatBrief } from "./story-director.js";
 import { validateScenarios } from "./scenario-validator.js";
 import { resolveAuth, validateStorageStates } from "./auth.js";
 import { loadPomModules } from "./pom.js";
@@ -49,7 +54,8 @@ function detectPRNumber(cwd?: string): number | undefined {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  const [subcommand] = process.argv.slice(2);
+  const argv = process.argv.slice(2);
+  const subcommand = argv[0];
 
   switch (subcommand) {
     case "init":
@@ -60,6 +66,10 @@ async function main(): Promise<void> {
       await cleanupOrphans();
       return;
 
+    case "story":
+      await runStoryCommand(argv.slice(1));
+      return;
+
     case "run":
     case undefined:
       await run();
@@ -67,9 +77,97 @@ async function main(): Promise<void> {
 
     default:
       console.error(`Unknown command: ${subcommand}`);
-      console.error("Usage: pr-visual [run | init | cleanup]");
+      console.error("Usage: pr-visual [run | init | cleanup | story]");
       process.exit(1);
   }
+}
+
+// ---------------------------------------------------------------------------
+// `story` subcommand
+// ---------------------------------------------------------------------------
+
+interface StoryCommandOptions {
+  pr?: number;
+  scaffold: boolean;
+  json: boolean;
+}
+
+function parseStoryArgs(args: string[]): StoryCommandOptions {
+  const opts: StoryCommandOptions = { scaffold: false, json: false };
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--scaffold") {
+      opts.scaffold = true;
+    } else if (arg === "--json") {
+      opts.json = true;
+    } else if (arg === "--pr") {
+      const value = args[i + 1];
+      if (!value) {
+        throw new Error("--pr requires a number");
+      }
+      const parsed = parseInt(value, 10);
+      if (!Number.isFinite(parsed)) {
+        throw new Error(`--pr expects a number, got "${value}"`);
+      }
+      opts.pr = parsed;
+      i++;
+    } else {
+      throw new Error(`Unknown option for \`story\`: ${arg}`);
+    }
+  }
+  return opts;
+}
+
+export async function runStoryCommand(args: string[]): Promise<void> {
+  const opts = parseStoryArgs(args);
+  const repoRoot = getRepoRoot();
+  const prNumber = opts.pr ?? detectPRNumber(repoRoot);
+
+  const description = getPRDescription(prNumber);
+  const diff = getGitDiff();
+
+  const usefulDescription =
+    description && description.length > 20 ? description : null;
+  const usefulDiff = diff && diff.length > 50 ? diff : null;
+
+  if (!usefulDescription && !usefulDiff) {
+    console.error(
+      "[story] No PR description and no useful diff found — nothing to direct."
+    );
+    process.exit(1);
+  }
+
+  const cacheDir = path.resolve(repoRoot, STORY_CACHE_DIR);
+  const brief = await directBrief({
+    ...(usefulDescription ? { prDescription: usefulDescription } : {}),
+    ...(usefulDiff ? { diff: usefulDiff } : {}),
+    cacheDir,
+  });
+
+  if (!brief) {
+    console.error(
+      "[story] No API key (set ANTHROPIC_API_KEY) — Story Director is unavailable."
+    );
+    process.exit(1);
+  }
+
+  if (opts.scaffold) {
+    const scaffoldPath = path.resolve(
+      repoRoot,
+      ".pr-visual/story-scaffold.json"
+    );
+    fs.mkdirSync(path.dirname(scaffoldPath), { recursive: true });
+    fs.writeFileSync(scaffoldPath, JSON.stringify(brief, null, 2));
+    console.log(`Scaffold written: ${scaffoldPath}`);
+    return;
+  }
+
+  if (opts.json) {
+    process.stdout.write(JSON.stringify(brief, null, 2) + "\n");
+    return;
+  }
+
+  process.stdout.write(formatBrief(brief) + "\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -165,12 +263,12 @@ async function run(): Promise<void> {
 
     // 4. Generate scenarios
     console.log("\n[1/4] Generating scenarios...");
-    const scenarios = await generateScenarios(
-      runtime.baseUrl,
-      runtime.prNumber,
-      runtime.prBody,
-      runtime.project
-    );
+    const scenarios = await generateScenarios(runtime.baseUrl, {
+      ...(runtime.prNumber !== undefined ? { prNumber: runtime.prNumber } : {}),
+      ...(runtime.prBody !== undefined ? { prBody: runtime.prBody } : {}),
+      config: runtime.project,
+      projectRoot: runCtx.rootDir,
+    });
     // Eagerly load POM modules so `validateScenarios` can check both the
     // `page` name and the `method` name before capture starts.
     const loadedPoms = loadPomModules(runtime.project.poms, runCtx.rootDir);

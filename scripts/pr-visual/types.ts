@@ -279,6 +279,34 @@ export interface ProjectConfig {
 
 export type TtsProviderName = "piper" | "google" | "openai" | "say";
 
+/** Generic, framework-agnostic personas used by the Story Director.
+ *  Picked from a closed set (rather than free-form) so the outro footer
+ *  and Remotion intro stay consistent. */
+export type Persona = "End User" | "Admin" | "New User" | "Stakeholder";
+
+export const PERSONAS: Persona[] = [
+  "End User",
+  "Admin",
+  "New User",
+  "Stakeholder",
+];
+
+/** Three-act narrative arc returned by the Story Director, with an
+ *  optional closing beat. */
+export interface Narrative {
+  persona: Persona;
+  setup: string;
+  incitingMoment: string;
+  payoff: string;
+  closing?: string;
+}
+
+/** Everything the Story Director produces from a PR description / diff. */
+export interface Brief {
+  narrative: Narrative;
+  scenarios: Scenario[];
+}
+
 export interface VoiceOverConfig {
   /** Master switch. Defaults to `false`. */
   enabled?: boolean;
