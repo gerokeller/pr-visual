@@ -3,6 +3,7 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { generateScenarios } from "./scenario-generator.js";
+import { validateScenarios } from "./scenario-validator.js";
 import { captureAllVariants } from "./capture.js";
 import { annotateScreenshots } from "./annotate/screenshots.js";
 import { burnCaptions } from "./annotate/video.js";
@@ -162,6 +163,7 @@ async function run(): Promise<void> {
       runtime.prBody,
       runtime.project
     );
+    validateScenarios(scenarios);
     console.log(`  Generated ${scenarios.length} scenario(s)`);
 
     // 5. Capture screenshots and video

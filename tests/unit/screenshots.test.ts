@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+  EMPHASIS_STRONG_SCALE,
+  buildSidebarSvg,
   escapeXml,
   wrapText,
-  buildSidebarSvg,
 } from "../../scripts/pr-visual/annotate/screenshots.js";
 
 describe("escapeXml()", () => {
@@ -115,5 +116,65 @@ describe("buildSidebarSvg()", () => {
     const textElements = str.match(/<text /g);
     // At least badge text + 2 caption lines
     expect(textElements!.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("does not render a beat label when beat is unset", () => {
+    const svg = buildSidebarSvg("Caption", "desktop", "light", 480, 1800, 2);
+    const str = svg.toString("utf-8");
+    expect(str).not.toContain("data-beat=");
+  });
+
+  it("renders the beat label when beat is provided", () => {
+    const svg = buildSidebarSvg(
+      "Caption",
+      "desktop",
+      "light",
+      480,
+      1800,
+      2,
+      { beat: "payoff" }
+    );
+    const str = svg.toString("utf-8");
+    expect(str).toContain('data-beat="payoff"');
+    expect(str).toContain(">\n    PAYOFF\n  ");
+  });
+
+  it("marks captions with the emphasis attribute (defaults to normal)", () => {
+    const normal = buildSidebarSvg(
+      "Caption",
+      "desktop",
+      "light",
+      480,
+      1800,
+      2
+    ).toString("utf-8");
+    expect(normal).toContain('data-emphasis="normal"');
+  });
+
+  it("emphasis strong scales the caption font size by EMPHASIS_STRONG_SCALE", () => {
+    const dpr = 2;
+    const normal = buildSidebarSvg(
+      "Caption",
+      "desktop",
+      "light",
+      480,
+      1800,
+      dpr
+    ).toString("utf-8");
+    const strong = buildSidebarSvg(
+      "Caption",
+      "desktop",
+      "light",
+      480,
+      1800,
+      dpr,
+      { emphasis: "strong" }
+    ).toString("utf-8");
+
+    // Base caption font size is 14 × dpr = 28. Strong is scaled by 1.5 → 42.
+    expect(normal).toContain('font-size="28"');
+    expect(strong).toContain(`font-size="${28 * EMPHASIS_STRONG_SCALE}"`);
+    expect(strong).toContain('data-emphasis="strong"');
+    expect(strong).toContain('font-weight="700"');
   });
 });

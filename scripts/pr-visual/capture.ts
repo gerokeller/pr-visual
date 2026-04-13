@@ -131,16 +131,16 @@ async function captureScenario(
         caption: step.caption,
         rawPath,
         annotatedPath: "", // Filled in by annotate step
+        ...(step.beat !== undefined ? { beat: step.beat } : {}),
+        ...(step.emphasis !== undefined ? { emphasis: step.emphasis } : {}),
       });
       screenshotIndex++;
     }
 
-    const holdMs = computeAdaptiveHoldMs(
-      step.caption,
-      step,
-      pacingContext,
-      wordsPerSecond !== undefined ? { wordsPerSecond } : {}
-    );
+    const holdMs = computeAdaptiveHoldMs(step.caption, step, pacingContext, {
+      ...(wordsPerSecond !== undefined ? { wordsPerSecond } : {}),
+      ...(step.beat !== undefined ? { beat: step.beat } : {}),
+    });
     await page.waitForTimeout(holdMs);
 
     captions.push({
@@ -148,6 +148,8 @@ async function captureScenario(
       route: currentRoute,
       startMs: stepStartMs,
       endMs: stepEndMs + holdMs,
+      ...(step.beat !== undefined ? { beat: step.beat } : {}),
+      ...(step.emphasis !== undefined ? { emphasis: step.emphasis } : {}),
     });
 
     pacingContext = advancePacingContext(pacingContext, step);
