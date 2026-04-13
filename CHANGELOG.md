@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-04-13
+
+### Fixed
+
+- Conform `.claude-plugin/marketplace.json` to the Claude Code marketplace schema so `/plugin marketplace add gerokeller/pr-visual` succeeds (#25)
+- Add required `type` and `title` fields to `userConfig.anthropic_api_key` in `plugin.json` so `/plugin install` passes manifest validation
+
 ## [1.1.0] - 2026-04-13
 
 ### Added
