@@ -1,8 +1,4 @@
-import {
-  PACING_MODES,
-  type Pacing,
-  type ScenarioStep,
-} from "./types.js";
+import { PACING_MODES, type Pacing, type ScenarioStep } from "./types.js";
 
 /** Pacing multipliers applied to the raw (content + action) hold time. */
 export const PACING_MULTIPLIERS: Record<Pacing, number> = {

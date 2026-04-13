@@ -16,9 +16,7 @@ const CTX: RunContext = {
 
 describe("sub()", () => {
   it("replaces {{port}}", () => {
-    expect(sub("http://localhost:{{port}}", CTX)).toBe(
-      "http://localhost:4567"
-    );
+    expect(sub("http://localhost:{{port}}", CTX)).toBe("http://localhost:4567");
   });
 
   it("replaces {{runId}}", () => {

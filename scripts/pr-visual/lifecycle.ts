@@ -48,10 +48,7 @@ function runStep(step: LifecycleStep, ctx: RunContext): void {
   execSync(command, { cwd, stdio: "pipe", timeout, env });
 }
 
-export function runSetupSteps(
-  steps: LifecycleStep[],
-  ctx: RunContext
-): void {
+export function runSetupSteps(steps: LifecycleStep[], ctx: RunContext): void {
   if (steps.length === 0) return;
   console.log("  Running setup steps...");
   for (const step of steps) {

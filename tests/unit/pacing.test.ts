@@ -10,10 +10,7 @@ import {
   createPacingContext,
   dramaticPreSettleMs,
 } from "../../scripts/pr-visual/pacing.js";
-import type {
-  Pacing,
-  ScenarioStep,
-} from "../../scripts/pr-visual/types.js";
+import type { Pacing, ScenarioStep } from "../../scripts/pr-visual/types.js";
 
 function step(overrides: Partial<ScenarioStep> = {}): ScenarioStep {
   return {
@@ -140,7 +137,11 @@ describe("computeAdaptiveHoldMs — transition cushion", () => {
       action: "type",
       value: "",
     });
-    const same = computeAdaptiveHoldMs(click.caption, click, withPrevSameAction);
+    const same = computeAdaptiveHoldMs(
+      click.caption,
+      click,
+      withPrevSameAction
+    );
     const diff = computeAdaptiveHoldMs(
       click.caption,
       click,
@@ -152,19 +153,20 @@ describe("computeAdaptiveHoldMs — transition cushion", () => {
 });
 
 describe("computeAdaptiveHoldMs — beat floors", () => {
-  it.each(Object.entries(BEAT_MIN_HOLD_MS))(
-    "beat %s enforces minimum hold %i ms even under quick pacing",
-    (beat, minMs) => {
-      const hold = computeAdaptiveHoldMs(
-        "Go",
-        step({ pacing: "quick", action: "wait" }),
-        createPacingContext(),
-        { beat: beat as keyof typeof BEAT_MIN_HOLD_MS }
-      );
-      // Beat floor wins over pacing floor when beat floor is higher.
-      expect(hold).toBeGreaterThanOrEqual(Math.max(minMs, PACING_FLOORS_MS.quick));
-    }
-  );
+  it.each(
+    Object.entries(BEAT_MIN_HOLD_MS)
+  )("beat %s enforces minimum hold %i ms even under quick pacing", (beat, minMs) => {
+    const hold = computeAdaptiveHoldMs(
+      "Go",
+      step({ pacing: "quick", action: "wait" }),
+      createPacingContext(),
+      { beat: beat as keyof typeof BEAT_MIN_HOLD_MS }
+    );
+    // Beat floor wins over pacing floor when beat floor is higher.
+    expect(hold).toBeGreaterThanOrEqual(
+      Math.max(minMs, PACING_FLOORS_MS.quick)
+    );
+  });
 
   it("beat floor overrides shorter captions", () => {
     // With quick pacing and a short caption, without a beat we'd land near
@@ -247,9 +249,9 @@ describe("dramaticPreSettleMs", () => {
   });
 
   it("returns 0 for dramatic steps without a caption", () => {
-    expect(
-      dramaticPreSettleMs(step({ pacing: "dramatic", caption: "" }))
-    ).toBe(0);
+    expect(dramaticPreSettleMs(step({ pacing: "dramatic", caption: "" }))).toBe(
+      0
+    );
     expect(
       dramaticPreSettleMs(step({ pacing: "dramatic", caption: "   " }))
     ).toBe(0);

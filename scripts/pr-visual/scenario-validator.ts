@@ -1,9 +1,4 @@
-import {
-  BEATS,
-  EMPHASIS_MODES,
-  PACING_MODES,
-  type Scenario,
-} from "./types.js";
+import { BEATS, EMPHASIS_MODES, PACING_MODES, type Scenario } from "./types.js";
 
 /**
  * Validate narrative / pacing enum fields on scenarios. Hard-fails on any

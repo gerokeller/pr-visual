@@ -72,7 +72,14 @@ describe("wrapText()", () => {
 
 describe("buildSidebarSvg()", () => {
   it("returns a Buffer containing valid SVG", () => {
-    const svg = buildSidebarSvg("Test caption", "desktop", "light", 480, 1800, 2);
+    const svg = buildSidebarSvg(
+      "Test caption",
+      "desktop",
+      "light",
+      480,
+      1800,
+      2
+    );
     const str = svg.toString("utf-8");
     expect(str).toContain("<svg");
     expect(str).toContain("</svg>");
@@ -125,15 +132,9 @@ describe("buildSidebarSvg()", () => {
   });
 
   it("renders the beat label when beat is provided", () => {
-    const svg = buildSidebarSvg(
-      "Caption",
-      "desktop",
-      "light",
-      480,
-      1800,
-      2,
-      { beat: "payoff" }
-    );
+    const svg = buildSidebarSvg("Caption", "desktop", "light", 480, 1800, 2, {
+      beat: "payoff",
+    });
     const str = svg.toString("utf-8");
     expect(str).toContain('data-beat="payoff"');
     expect(str).toContain(">\n    PAYOFF\n  ");
