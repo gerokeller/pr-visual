@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
@@ -83,8 +83,9 @@ export async function createWorktree(
 
   // Create the worktree with a new branch at the current HEAD
   console.log(`  Worktree: ${worktreeRoot}`);
-  execSync(
-    `git worktree add -b ${JSON.stringify(branch)} ${JSON.stringify(worktreeRoot)} HEAD`,
+  execFileSync(
+    "git",
+    ["worktree", "add", "-b", branch, worktreeRoot, "HEAD"],
     {
       cwd: repoRoot,
       stdio: "pipe",
@@ -131,8 +132,9 @@ export function removeWorktree(
   repoRoot: string
 ): void {
   try {
-    execSync(
-      `git worktree remove --force ${JSON.stringify(worktree.rootDir)}`,
+    execFileSync(
+      "git",
+      ["worktree", "remove", "--force", worktree.rootDir],
       {
         cwd: repoRoot,
         stdio: "pipe",
@@ -148,7 +150,7 @@ export function removeWorktree(
 
   // Delete the temporary branch
   try {
-    execSync(`git branch -D ${JSON.stringify(worktree.branch)}`, {
+    execFileSync("git", ["branch", "-D", worktree.branch], {
       cwd: repoRoot,
       stdio: "pipe",
       timeout: 5_000,
