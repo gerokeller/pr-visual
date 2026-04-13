@@ -8,6 +8,7 @@ import { captureAllVariants } from "./capture.js";
 import { annotateScreenshots } from "./annotate/screenshots.js";
 import { burnCaptions } from "./annotate/video.js";
 import { composeVideo } from "./compositing/index.js";
+import { runMobilePass } from "./mobile-pass.js";
 import { patchPRBodyWithScreenshots, addVideoComment } from "./pr-attach.js";
 import { loadProjectConfig, resolveBaseUrl } from "./config.js";
 import {
@@ -213,9 +214,18 @@ async function run(): Promise<void> {
     }
 
     // 6c. Optional Remotion compositing — desktop+light variant only.
+    // `mobile.enabled` implies `compositing` is on.
     let compositedVideoPath: string | null = null;
-    if (runtime.project.video?.compositing === "remotion") {
+    const mobileEnabled = runtime.project.video?.mobile?.enabled === true;
+    const compositingEnabled =
+      runtime.project.video?.compositing === "remotion" || mobileEnabled;
+    if (compositingEnabled) {
       console.log("\n[3b/4] Compositing video (Remotion)...");
+      if (mobileEnabled) {
+        console.log(
+          "  Mobile composite enabled — wall-clock cost is ~1.8x desktop-only."
+        );
+      }
       const heroResult = results.find(
         (r) => r.viewport.name === "desktop" && r.colorScheme === "light"
       );
@@ -234,16 +244,53 @@ async function run(): Promise<void> {
           const heroScenario =
             scenarios.find((s) => s.name === heroResult.captions[0]?.text) ??
             scenarios[0]!;
-          const compose = await composeVideo({
-            project: runtime.project,
-            sourceVideoPath: heroCaptioned,
-            outputDir: path.dirname(heroCaptioned),
-            result: heroResult,
-            scenario: heroScenario,
-          });
-          if (compose.outputPath) {
-            compositedVideoPath = compose.outputPath;
-            console.log(`  Composited: ${path.basename(compose.outputPath)}`);
+
+          // Optional mobile companion pass — fail closed: if it errors,
+          // abort compositing entirely so the user knows the composite
+          // didn't include the mobile stream.
+          let mobilePass: Awaited<ReturnType<typeof runMobilePass>> | null =
+            null;
+          let mobileFailed = false;
+          if (mobileEnabled) {
+            try {
+              console.log("  Running mobile composite pass...");
+              mobilePass = await runMobilePass(
+                heroScenario,
+                runtime.baseUrl,
+                runtime.outputDir,
+                runtime.project
+              );
+            } catch (err) {
+              mobileFailed = true;
+              console.error("  Mobile composite pass failed:", err);
+              console.error(
+                "  Aborting compositing — captioned MP4 stays as the final artifact."
+              );
+            }
+          }
+
+          if (!mobileFailed) {
+            const compose = await composeVideo({
+              project: runtime.project,
+              sourceVideoPath: heroCaptioned,
+              outputDir: path.dirname(heroCaptioned),
+              result: heroResult,
+              scenario: heroScenario,
+              ...(mobilePass
+                ? {
+                    mobile: {
+                      videoPath: mobilePass.videoPath,
+                      width: mobilePass.width,
+                      height: mobilePass.height,
+                      layout: mobilePass.layout,
+                    },
+                  }
+                : {}),
+            });
+            if (compose.outputPath) {
+              compositedVideoPath = compose.outputPath;
+              console.log(`  Composited: ${path.basename(compose.outputPath)}`);
+            }
           }
         }
       }

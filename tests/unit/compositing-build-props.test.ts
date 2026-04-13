@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_BRAND_COLOR,
+  SIDE_BY_SIDE_CANVAS_SCALE,
   buildCompositionInput,
 } from "../../scripts/pr-visual/compositing/build-props.js";
 import type {
@@ -133,6 +134,80 @@ describe("buildCompositionInput", () => {
     // 3 captions ending at 3000ms + 250ms tail = 3250ms -> 98 frames at 30fps.
     expect(props.videoDurationFrames).toBe(98);
     expect(props.fps).toBe(30);
+  });
+
+  describe("mobile companion", () => {
+    it("does not set mobile* fields when no companion is supplied", () => {
+      const props = buildCompositionInput({
+        result: makeResult(scenario.steps),
+        scenario,
+        video: undefined,
+        videoSrc: "x.mp4",
+      });
+      expect(props.mobileVideoSrc).toBeUndefined();
+      expect(props.mobileLayout).toBeUndefined();
+    });
+
+    it("forwards mobile fields and layout when supplied", () => {
+      const props = buildCompositionInput({
+        result: makeResult(scenario.steps),
+        scenario,
+        video: undefined,
+        videoSrc: "x.mp4",
+        mobile: {
+          videoSrc: "x-mobile.webm",
+          width: 1170,
+          height: 2532,
+          layout: "pip",
+        },
+      });
+      expect(props.mobileVideoSrc).toBe("x-mobile.webm");
+      expect(props.mobileWidth).toBe(1170);
+      expect(props.mobileHeight).toBe(2532);
+      expect(props.mobileLayout).toBe("pip");
+    });
+
+    it("widens the canvas for side-by-side layout", () => {
+      const props = buildCompositionInput({
+        result: makeResult(scenario.steps),
+        scenario,
+        video: undefined,
+        videoSrc: "x.mp4",
+        mobile: {
+          videoSrc: "x-mobile.webm",
+          width: 1170,
+          height: 2532,
+          layout: "side-by-side",
+        },
+      });
+      // desktop video width 2880; widened by SIDE_BY_SIDE_CANVAS_SCALE.
+      expect(props.width).toBe(Math.round(2880 * SIDE_BY_SIDE_CANVAS_SCALE));
+      // Desktop intrinsic dims unchanged so VideoWithFade can fit them.
+      expect(props.desktopVideoWidth).toBe(2880);
+      expect(props.desktopVideoHeight).toBe(1800);
+    });
+
+    it("does NOT widen the canvas for pip or sequential layouts", () => {
+      for (const layout of ["pip", "sequential"] as const) {
+        const props = buildCompositionInput({
+          result: makeResult(scenario.steps),
+          scenario,
+          video: undefined,
+          videoSrc: "x.mp4",
+          mobile: {
+            videoSrc: "x-mobile.webm",
+            width: 1170,
+            height: 2532,
+            layout,
+          },
+        });
+        expect(props.width).toBe(2880);
+      }
+    });
+
+    it("SIDE_BY_SIDE_CANVAS_SCALE is 1.25 (documented)", () => {
+      expect(SIDE_BY_SIDE_CANVAS_SCALE).toBe(1.25);
+    });
   });
 
   it("populates step* arrays so the canvas caption bar renders", () => {

@@ -16,6 +16,9 @@ export function resolveRegisterEntry(): string {
 export interface RenderArgs {
   /** Path to the recorded source video (e.g. the captioned MP4). */
   sourceVideoPath: string;
+  /** Optional mobile companion video path. Staged into the bundle's public/
+   *  dir under the filename in `inputProps.mobileVideoSrc`. */
+  mobileVideoPath?: string;
   /** Output directory where the composited MP4 is written. */
   outputDir: string;
   /** Composition props, must be valid per `assertValidCompositionInput`. */
@@ -59,6 +62,15 @@ export async function renderComposition(
   const stagedVideoName = path.basename(args.inputProps.videoSrc);
   const stagedVideoPath = path.join(publicDir, stagedVideoName);
   fs.copyFileSync(args.sourceVideoPath, stagedVideoPath);
+
+  // Stage the mobile companion when present.
+  if (args.mobileVideoPath && args.inputProps.mobileVideoSrc) {
+    const stagedMobilePath = path.join(
+      publicDir,
+      path.basename(args.inputProps.mobileVideoSrc)
+    );
+    fs.copyFileSync(args.mobileVideoPath, stagedMobilePath);
+  }
 
   console.log("[compositing] selecting composition...");
   const composition = await selectComposition({

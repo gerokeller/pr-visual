@@ -103,6 +103,13 @@ export interface ScenarioStep {
   /** Caption emphasis. `strong` renders as a larger title-card caption.
    *  @default "normal" */
   emphasis?: Emphasis;
+  /** Skip this step on the dedicated mobile composite pass. */
+  mobileSkip?: boolean;
+  /** Override `selector` on the mobile composite pass. */
+  mobileSelector?: string;
+  /** Override `url` (or its path component) on the mobile composite pass.
+   *  Useful when mobile uses a different route. */
+  mobilePath?: string;
 }
 
 export interface CaptionTiming {
@@ -263,6 +270,27 @@ export interface VideoConfig {
   orgName?: string;
   /** Optional bullet list rendered as a "Key Highlights" card in the outro. */
   highlights?: string[];
+  /** Mobile composite settings. When `mobile.enabled` is true the recorder
+   *  runs a dedicated mobile pass after the main matrix and composites both
+   *  streams into one MP4. Implies `compositing: "remotion"`. */
+  mobile?: MobileVideoConfig;
+}
+
+export interface MobileVideoConfig {
+  /** Master switch. When false (default), no mobile pass runs and the
+   *  composite stays desktop-only. */
+  enabled?: boolean;
+  /** Mobile viewport in CSS pixels. Defaults to iPhone 14 Pro logical size. */
+  viewport?: { width: number; height: number };
+  /** Device scale factor for the mobile context.
+   *  @default 3 */
+  deviceScaleFactor?: number;
+  /** Composition layout in the final render.
+   *  - `side-by-side`: desktop 80% + phone 20% in a stylized device frame.
+   *  - `pip`: phone bottom-right over fullscreen desktop.
+   *  - `sequential`: desktop first half + phone second half.
+   *  @default "side-by-side" */
+  layout?: "side-by-side" | "pip" | "sequential";
 }
 
 export interface OverlaysConfig {
