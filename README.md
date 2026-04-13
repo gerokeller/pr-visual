@@ -988,11 +988,13 @@ CI runs `typecheck`, `lint`, and the full `test` suite on every PR and on push t
 
 ## Releases
 
-Releases are created automatically by `.github/workflows/release.yml` on every push to `master`.
+Releases are created automatically by `.github/workflows/release.yml`, which runs after the `CI` workflow finishes successfully on `master`. A red CI run blocks the release.
 
-- **Patch bumps are automatic.** Merge a PR; the workflow reads the latest `v*` tag, increments the patch segment, tags the commit, and publishes a GitHub Release with auto-generated notes. No code change required.
+- **Patch bumps are automatic.** Merge a PR; when CI passes, the workflow reads the latest `v*` tag, increments the patch segment, tags the commit, and publishes a GitHub Release with auto-generated notes. No code change required.
 - **Minor and major bumps are manual.** Before merging, bump `version` in `package.json` to the target `MAJOR.MINOR.0` (e.g., `1.1.3` → `1.2.0`). The workflow detects that `package.json` is ahead of the latest tag and uses that version instead of auto-incrementing. Optionally update `CHANGELOG.md` in the same PR.
-- **Source of truth for the released version is the latest `v*` git tag**, not `package.json`. `package.json` only needs to move when you want a minor or major bump.
+- **Manifests stay in sync automatically.** After each release, the workflow rewrites the `version` fields in `package.json`, `.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` (both locations), then pushes a `chore(release): sync manifests …` commit with `[skip ci]`. Do not edit these fields by hand outside of a minor/major bump PR.
+- **Manual re-run.** Use the workflow's `workflow_dispatch` trigger from the Actions tab if CI succeeded but the release did not fire (e.g., due to a transient failure).
+- **Source of truth for the released version is the latest `v*` git tag**, not `package.json`.
 - Release notes come from GitHub's auto-generated changelog (merged PRs and commits since the previous tag). `CHANGELOG.md` is maintained by hand for the human-readable history; keep it in sync when you make a minor/major bump.
 
 ## License
