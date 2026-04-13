@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Conform `.claude-plugin/marketplace.json` to the Claude Code marketplace schema so `/plugin marketplace add gerokeller/pr-visual` succeeds (#25)
+- Add required `type` and `title` fields to `userConfig.anthropic_api_key` in `plugin.json` so `/plugin install` passes manifest validation
 
 ## [1.1.0] - 2026-04-13
 
