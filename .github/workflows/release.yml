@@ -31,8 +31,22 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: true
 
+      - name: Detect self-triggered run
+        id: self
+        run: |
+          set -euo pipefail
+          subject=$(git log -1 --pretty=%s)
+          echo "commit subject: $subject"
+          if printf '%s' "$subject" | grep -qE '^chore\(release\): sync manifests '; then
+            echo "This commit is the manifest-sync commit from a previous release run; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Compute next version
         id: version
+        if: steps.self.outputs.skip == 'false'
         run: |
           set -euo pipefail
 
@@ -104,6 +118,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json .claude-plugin/plugin.json .claude-plugin/marketplace.json
-          # [skip ci] prevents the bump commit from re-triggering CI + Release.
-          git commit -m "chore(release): sync manifests to v${{ steps.version.outputs.version }} [skip ci]"
+          # CI and CodeQL run on this commit so branch protection is satisfied.
+          # The Release workflow self-detects this commit (see "Detect self-triggered run")
+          # and exits without creating another tag, so there is no feedback loop.
+          git commit -m "chore(release): sync manifests to v${{ steps.version.outputs.version }}"
           git push origin HEAD:master
