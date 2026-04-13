@@ -6,9 +6,7 @@ function scenario(overrides: Partial<Scenario> = {}): Scenario {
   return {
     name: "demo",
     description: "test",
-    steps: [
-      { action: "navigate", url: "/", caption: "Open the app" },
-    ],
+    steps: [{ action: "navigate", url: "/", caption: "Open the app" }],
     ...overrides,
   };
 }
@@ -23,9 +21,7 @@ describe("validateScenarios()", () => {
       expect(() =>
         validateScenarios([
           scenario({
-            steps: [
-              { action: "click", selector: "#x", caption: "c", beat },
-            ],
+            steps: [{ action: "click", selector: "#x", caption: "c", beat }],
           }),
         ])
       ).not.toThrow();
@@ -51,9 +47,7 @@ describe("validateScenarios()", () => {
       expect(() =>
         validateScenarios([
           scenario({
-            steps: [
-              { action: "click", selector: "#x", caption: "c", pacing },
-            ],
+            steps: [{ action: "click", selector: "#x", caption: "c", pacing }],
           }),
         ])
       ).not.toThrow();
@@ -65,7 +59,12 @@ describe("validateScenarios()", () => {
       validateScenarios([
         scenario({
           steps: [
-            { action: "click", selector: "#x", caption: "c", beat: "finale" as never },
+            {
+              action: "click",
+              selector: "#x",
+              caption: "c",
+              beat: "finale" as never,
+            },
           ],
         }),
       ])
@@ -115,7 +114,12 @@ describe("validateScenarios()", () => {
           steps: [
             { action: "navigate", url: "/", caption: "a" },
             { action: "click", selector: "#x", caption: "b" },
-            { action: "click", selector: "#y", caption: "c", beat: "boom" as never },
+            {
+              action: "click",
+              selector: "#y",
+              caption: "c",
+              beat: "boom" as never,
+            },
           ],
         }),
       ])
@@ -126,5 +130,31 @@ describe("validateScenarios()", () => {
     expect(() =>
       validateScenarios([scenario({ persona: "Customer Success Manager" })])
     ).not.toThrow();
+  });
+
+  it("accepts a valid highlight step with selector", () => {
+    expect(() =>
+      validateScenarios([
+        scenario({
+          steps: [
+            {
+              action: "highlight",
+              selector: "#primary-cta",
+              caption: "Pulse the CTA",
+            },
+          ],
+        }),
+      ])
+    ).not.toThrow();
+  });
+
+  it("rejects a highlight step without a selector", () => {
+    expect(() =>
+      validateScenarios([
+        scenario({
+          steps: [{ action: "highlight", caption: "no selector" }],
+        }),
+      ])
+    ).toThrowError(/Missing selector for highlight step/);
   });
 });

@@ -27,7 +27,10 @@ export function msToAssTime(ms: number): string {
 
 /** @internal exported for testing */
 export function escapeAssText(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/\{/g, "\\{").replace(/\}/g, "\\}");
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/\{/g, "\\{")
+    .replace(/\}/g, "\\}");
 }
 
 /** @internal exported for testing */
@@ -65,11 +68,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     // Beat-transition chip — emit only at an actual transition from one
     // beat to another, so N distinct beats produce N-1 chips.
-    const isTransition =
+    if (
       cap.beat !== undefined &&
       previousBeat !== undefined &&
-      cap.beat !== previousBeat;
-    if (isTransition) {
+      cap.beat !== previousBeat
+    ) {
       const chipEnd = msToAssTime(
         Math.min(cap.endMs, cap.startMs + BEAT_CHIP_DURATION_MS)
       );
@@ -109,10 +112,7 @@ export async function burnCaptions(
     .replace(/'/g, "'\\''");
 
   // Try the `ass` filter first (requires libass), fall back to `subtitles` filter
-  const filters = [
-    `ass='${escapedAssPath}'`,
-    `subtitles='${escapedAssPath}'`,
-  ];
+  const filters = [`ass='${escapedAssPath}'`, `subtitles='${escapedAssPath}'`];
 
   let captioned = false;
   for (const vf of filters) {
@@ -150,12 +150,20 @@ export async function burnCaptions(
 
   if (!captioned) {
     console.warn(`    ffmpeg captioning failed — returning original video`);
-    try { fs.unlinkSync(assPath); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(assPath);
+    } catch {
+      /* ignore */
+    }
     return videoPath;
   }
 
   // Clean up intermediate ASS file
-  try { fs.unlinkSync(assPath); } catch { /* ignore */ }
+  try {
+    fs.unlinkSync(assPath);
+  } catch {
+    /* ignore */
+  }
 
   return outputPath;
 }

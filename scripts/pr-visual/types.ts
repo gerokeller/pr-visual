@@ -81,7 +81,14 @@ export type Emphasis = "normal" | "strong";
 export const EMPHASIS_MODES: Emphasis[] = ["normal", "strong"];
 
 export interface ScenarioStep {
-  action: "navigate" | "click" | "type" | "wait" | "scroll" | "screenshot";
+  action:
+    | "navigate"
+    | "click"
+    | "type"
+    | "wait"
+    | "scroll"
+    | "screenshot"
+    | "highlight";
   selector?: string;
   value?: string;
   url?: string;
@@ -226,6 +233,22 @@ export interface ProjectConfig {
 
   /** Adaptive pacing configuration. */
   pacing?: PacingConfig;
+
+  /** Optional interaction overlays injected at capture time (cursor,
+   *  click ripples, highlight spotlight). All flags default to `false`
+   *  so existing users see no change in behavior. */
+  overlays?: OverlaysConfig;
+}
+
+export interface OverlaysConfig {
+  /** Inject a custom cursor that follows the Playwright mouse with
+   *  click-feedback scale-down. Visible in both video and post-navigate
+   *  screenshots. */
+  cursor?: boolean;
+  /** Emit a ripple + center-dot at each click's coordinates. */
+  clicks?: boolean;
+  /** Enable the `highlight` step action (pulsing glow + dimmed backdrop). */
+  highlights?: boolean;
 }
 
 export interface PacingConfig {

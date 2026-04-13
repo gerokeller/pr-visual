@@ -1,9 +1,4 @@
-import {
-  BEATS,
-  EMPHASIS_MODES,
-  PACING_MODES,
-  type Scenario,
-} from "./types.js";
+import { BEATS, EMPHASIS_MODES, PACING_MODES, type Scenario } from "./types.js";
 
 /**
  * Validate narrative / pacing enum fields on scenarios. Hard-fails on any
@@ -19,6 +14,11 @@ export function validateScenarios(scenarios: Scenario[]): void {
       const step = scenario.steps[i]!;
       const stepWhere = `${where} step[${i}]`;
 
+      if (step.action === "highlight" && !step.selector) {
+        throw new Error(
+          `Missing selector for highlight step at ${stepWhere}. The highlight action requires a CSS selector.`
+        );
+      }
       if (step.pacing !== undefined && !PACING_MODES.includes(step.pacing)) {
         throw new Error(
           `Invalid pacing="${step.pacing}" at ${stepWhere}. Must be one of: ${PACING_MODES.join(", ")}.`

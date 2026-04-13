@@ -6,7 +6,13 @@ const port = process.env.PORT || 3999;
 
 const HTML = `<!DOCTYPE html>
 <html>
-<head><title>pr-visual fixture</title></head>
+<head>
+  <title>pr-visual fixture</title>
+  <style>
+    body { margin: 0; padding: 40px; font-family: system-ui, sans-serif; }
+    #login { padding: 12px 24px; margin-top: 20px; }
+  </style>
+</head>
 <body>
   <h1>Fixture App</h1>
   <p>This is a test page for pr-visual e2e tests.</p>

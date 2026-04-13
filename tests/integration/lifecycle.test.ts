@@ -7,7 +7,10 @@ import {
   runTeardownSteps,
   onExit,
 } from "../../scripts/pr-visual/lifecycle.js";
-import type { LifecycleStep, RunContext } from "../../scripts/pr-visual/types.js";
+import type {
+  LifecycleStep,
+  RunContext,
+} from "../../scripts/pr-visual/types.js";
 
 function makeTmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pr-visual-lc-test-"));
@@ -104,9 +107,7 @@ describe("runSetupSteps()", () => {
     tmpDir = makeTmpDir();
     const ctx = makeCtx(tmpDir);
 
-    const steps: LifecycleStep[] = [
-      { name: "Will fail", command: "exit 1" },
-    ];
+    const steps: LifecycleStep[] = [{ name: "Will fail", command: "exit 1" }];
 
     expect(() => runSetupSteps(steps, ctx)).toThrow();
   });

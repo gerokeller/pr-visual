@@ -103,19 +103,18 @@ describe("resolveDesktopViewport()", () => {
   });
 
   describe("presets produce documented resolutions", () => {
-    it.each(Object.entries(QUALITY_PRESETS))(
-      "%s resolves to %o",
-      (preset, dims) => {
-        const viewport = resolveDesktopViewport(
-          makeScenario({ quality: preset as keyof typeof QUALITY_PRESETS }),
-          undefined,
-          {}
-        );
-        expect(viewport.width).toBe(dims.width);
-        expect(viewport.height).toBe(dims.height);
-        expect(viewport.deviceScaleFactor).toBe(2);
-      }
-    );
+    it.each(
+      Object.entries(QUALITY_PRESETS)
+    )("%s resolves to %o", (preset, dims) => {
+      const viewport = resolveDesktopViewport(
+        makeScenario({ quality: preset as keyof typeof QUALITY_PRESETS }),
+        undefined,
+        {}
+      );
+      expect(viewport.width).toBe(dims.width);
+      expect(viewport.height).toBe(dims.height);
+      expect(viewport.deviceScaleFactor).toBe(2);
+    });
   });
 
   describe("invalid input — hard fail", () => {

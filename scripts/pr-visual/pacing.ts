@@ -1,8 +1,4 @@
-import {
-  PACING_MODES,
-  type Pacing,
-  type ScenarioStep,
-} from "./types.js";
+import { PACING_MODES, type Pacing, type ScenarioStep } from "./types.js";
 
 /** Pacing multipliers applied to the raw (content + action) hold time. */
 export const PACING_MULTIPLIERS: Record<Pacing, number> = {
@@ -88,6 +84,9 @@ function actionBonusMs(step: ScenarioStep, ctx: PacingContext): number {
       return 600;
     case "type":
       return Math.ceil((step.value?.length ?? 0) / 10) * 200;
+    case "highlight":
+      // Matches demo-recorder's highlight bonus (800ms).
+      return 800;
     case "wait":
     case "screenshot":
       return 0;

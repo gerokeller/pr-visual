@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { execSync, spawn, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -54,7 +54,9 @@ describe("e2e pipeline", () => {
     expect(scenarios[0]!.steps.length).toBeGreaterThan(0);
   });
 
-  it("captures screenshots across all viewport/colorScheme variants", { timeout: 90_000 }, async () => {
+  it("captures screenshots across all viewport/colorScheme variants", {
+    timeout: 90_000,
+  }, async () => {
     const scenarios = await generateScenarios(FIXTURE_URL);
     const results = await captureAllVariants(scenarios, FIXTURE_URL, outputDir);
 
@@ -90,7 +92,9 @@ describe("e2e pipeline", () => {
     }
   });
 
-  it("annotates screenshots with sidebar producing valid WebP files", { timeout: 90_000 }, async () => {
+  it("annotates screenshots with sidebar producing valid WebP files", {
+    timeout: 90_000,
+  }, async () => {
     const scenarios = await generateScenarios(FIXTURE_URL);
     const results = await captureAllVariants(scenarios, FIXTURE_URL, outputDir);
     const annotated = await annotateScreenshots(results);
