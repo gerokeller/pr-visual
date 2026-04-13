@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-04-13
+
+### Changed
+
+- Release workflow is now gated on `CI` via `workflow_run`; a red CI run on `master` blocks the release instead of racing it
+- Releases are now cut **only when `package.json` `version` is manually bumped above the latest `v*` tag**. Merging without a version bump produces no release. The workflow never writes to the repository. This replaces the short-lived auto-patch-bump behaviour introduced in 1.1.3
+- Release workflow gains `workflow_dispatch` for manual re-runs when CI succeeded but the release did not fire
+
+### Added
+
+- `CLAUDE.md` at the repo root: rules for AI agents working on the codebase (release checklist, manifest-version expectations, commit-message rules)
+- `Releases` section in `README.md`
+
+### Fixed
+
+- Document the GitHub Actions skip-ci footgun: any `[skip ci]`-style token in a commit message (subject **or** body) silently skips push-triggered workflows. Agents must paraphrase when referencing these tokens
+
+## [1.1.3] - 2026-04-13
+
+### Added
+
+- Initial auto-release workflow on push to `master` (superseded in 1.1.4 by the CI-gated, manual-bump flow)
+
 ## [1.1.2] - 2026-04-13
 
 ### Fixed
