@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-13
+
+### Added
+
+- Story Director: narrative-driven scenario planning with per-beat personas (#8)
+- Voice-over TTS pipeline with caption-synced audio tracks (#9)
+- POM step action for reusable page-object interactions in scenarios (#11)
+- Scenario profiles and Playwright storage state loader for authenticated flows (#10)
+- Narrative beats and personas in scenario generation (#7)
+- Mobile composite video layouts (#6)
+- Remotion-based video compositing pipeline (#2)
+- Interaction overlays drawn on captured steps (#3)
+- Adaptive pacing for capture timing (#4)
+- Quality presets for capture resolution and encoding (#5)
+- Biome lint/format and GitHub Actions CI workflow
+- Dependabot configuration for security and version updates
+
+### Fixed
+
+- Hardened `git worktree` invocations against shell-interpretation of paths (#22)
+- Explicit read-only `GITHUB_TOKEN` permissions on CI workflow (#22)
+- Voice-over cache-hit test made resilient; ffmpeg installed explicitly in CI
+
 ## [1.0.0] - 2026-04-12
 
 ### Added
