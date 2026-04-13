@@ -96,8 +96,7 @@ export async function injectCustomCursor(
 
     document.addEventListener("mouseup", () => {
       cursor.style.transform = "translate(-50%, -50%) scale(1)";
-      cursor.style.boxShadow =
-        shadow + `, inset 0 0 0 ${ringWidth}px ${ringColor}`;
+      cursor.style.boxShadow = `${shadow}, inset 0 0 0 ${ringWidth}px ${ringColor}`;
     });
   }, variant);
 }

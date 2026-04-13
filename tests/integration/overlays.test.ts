@@ -235,58 +235,50 @@ describe("overlays — capture wiring + default-off", () => {
     };
   }
 
-  it(
-    "no overlay DOM is injected when config has no overlays block (default off)",
-    async () => {
-      // Use captureAllVariants so we exercise the wiring. To keep the test
-      // focused, assert via a follow-up scenario that runs without overlays
-      // and peek at the resulting video's existence as proof the path ran
-      // without errors.
+  it("no overlay DOM is injected when config has no overlays block (default off)", async () => {
+    // Use captureAllVariants so we exercise the wiring. To keep the test
+    // focused, assert via a follow-up scenario that runs without overlays
+    // and peek at the resulting video's existence as proof the path ran
+    // without errors.
+    const results = await captureAllVariants(
+      [scenarioWith()],
+      FIXTURE_URL,
+      outputDir
+    );
+    expect(results.length).toBeGreaterThan(0);
+    // The real assertion happens inline: test a fresh browser context to
+    // confirm no overlay was injected by the *capture* pipeline.
+    const ctx = await browser.newContext();
+    const pg = await ctx.newPage();
+    try {
+      await pg.goto(FIXTURE_URL, { waitUntil: "networkidle" });
+      const present = await pg.evaluate(() => ({
+        cursor: !!document.getElementById("demo-cursor"),
+        spotlight: !!document.getElementById("demo-spotlight"),
+      }));
+      expect(present.cursor).toBe(false);
+      expect(present.spotlight).toBe(false);
+    } finally {
+      await ctx.close();
+    }
+  }, 60_000);
+
+  it("each overlay flag is independently toggleable", async () => {
+    // Validate flag isolation at the config-shape level — the integration
+    // of each flag is proven by the dedicated tests above. Here we just
+    // ensure capture accepts selective flags without crashing.
+    for (const overlays of [
+      { cursor: true },
+      { clicks: true },
+      { highlights: true },
+    ]) {
       const results = await captureAllVariants(
         [scenarioWith()],
         FIXTURE_URL,
-        outputDir
+        outputDir,
+        { devServer: { command: "" }, overlays }
       );
       expect(results.length).toBeGreaterThan(0);
-      // The real assertion happens inline: test a fresh browser context to
-      // confirm no overlay was injected by the *capture* pipeline.
-      const ctx = await browser.newContext();
-      const pg = await ctx.newPage();
-      try {
-        await pg.goto(FIXTURE_URL, { waitUntil: "networkidle" });
-        const present = await pg.evaluate(() => ({
-          cursor: !!document.getElementById("demo-cursor"),
-          spotlight: !!document.getElementById("demo-spotlight"),
-        }));
-        expect(present.cursor).toBe(false);
-        expect(present.spotlight).toBe(false);
-      } finally {
-        await ctx.close();
-      }
-    },
-    60_000
-  );
-
-  it(
-    "each overlay flag is independently toggleable",
-    async () => {
-      // Validate flag isolation at the config-shape level — the integration
-      // of each flag is proven by the dedicated tests above. Here we just
-      // ensure capture accepts selective flags without crashing.
-      for (const overlays of [
-        { cursor: true },
-        { clicks: true },
-        { highlights: true },
-      ]) {
-        const results = await captureAllVariants(
-          [scenarioWith()],
-          FIXTURE_URL,
-          outputDir,
-          { devServer: { command: "" }, overlays }
-        );
-        expect(results.length).toBeGreaterThan(0);
-      }
-    },
-    120_000
-  );
+    }
+  }, 120_000);
 });
