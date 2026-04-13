@@ -334,6 +334,44 @@ export default {
 
 Captions of six words or fewer are read proportionally faster (+0.6 w/s) so short beats don't linger.
 
+## Narrative beats
+
+Scenarios can tag each step with a **beat** — `setup`, `action`, `payoff`, or `close` — to mark where the step sits in the story arc. The annotation layer picks these up:
+
+- **Video**: a brief 700ms title-card chip fades in whenever the beat changes between two consecutive steps (so three distinct beats produce two chips).
+- **Screenshots**: the sidebar shows the beat label under the viewport badge.
+
+Beats also enforce a minimum hold in the [pacing formula](#adaptive-pacing) (`setup` 1200ms, `action` 1800ms, `payoff` 2800ms, `close` 2200ms), so a `payoff` step earns scene-length breathing room even under `quick` pacing.
+
+### Emphasis
+
+Each step can also carry `emphasis: "strong"` to render as a larger title-card caption (1.5× the base caption font, bolder weight). Use it on the key moments you want viewers to remember — usually a `payoff` beat.
+
+```ts
+{
+  action: "screenshot",
+  caption: "The deal is closed",
+  beat: "payoff",
+  emphasis: "strong",
+  pacing: "dramatic",
+}
+```
+
+### Persona
+
+Scenarios can carry an audience label via `persona: "Agency PM"` (any free-form string). This is stored on the scenario for later use by the Remotion intro composer and the Story Director. It does not render directly in the current annotation layer.
+
+```ts
+{
+  name: "New client onboarding",
+  description: "...",
+  persona: "Agency PM",
+  steps: [ /* ... */ ],
+}
+```
+
+Invalid beat, emphasis, or pacing values fail the run with a clear error before capture starts.
+
 ## CLI commands
 
 ```bash

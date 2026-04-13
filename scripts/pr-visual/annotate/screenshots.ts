@@ -1,6 +1,11 @@
 import sharp from "sharp";
 import * as path from "node:path";
-import type { CaptureResult, AnnotatedScreenshot } from "../types.js";
+import type {
+  AnnotatedScreenshot,
+  Beat,
+  CaptureResult,
+  Emphasis,
+} from "../types.js";
 
 const SIDEBAR_WIDTH_BASE = 240;
 const FONT_SIZE_BASE = 14;
@@ -10,6 +15,14 @@ const BG_DARK = "#1e1e2e";
 const TEXT_LIGHT = "#1a1a2e";
 const TEXT_DARK = "#e0e0e0";
 const ACCENT = "#6c5ce7";
+
+/** Caption font size multiplier when emphasis is "strong". */
+export const EMPHASIS_STRONG_SCALE = 1.5;
+
+export interface SidebarOptions {
+  beat?: Beat;
+  emphasis?: Emphasis;
+}
 
 /** @internal exported for testing */
 export function escapeXml(text: string): string {
@@ -45,41 +58,79 @@ export function buildSidebarSvg(
   colorScheme: string,
   sidebarWidth: number,
   sidebarHeight: number,
-  dpr: number
+  dpr: number,
+  options: SidebarOptions = {}
 ): Buffer {
-  const fontSize = FONT_SIZE_BASE * dpr;
+  const baseFontSize = FONT_SIZE_BASE * dpr;
   const padding = PADDING_BASE * dpr;
-  const lineHeight = fontSize * 1.5;
   const bg = colorScheme === "dark" ? BG_DARK : BG_LIGHT;
   const textColor = colorScheme === "dark" ? TEXT_DARK : TEXT_LIGHT;
 
-  const maxChars = Math.floor((sidebarWidth - padding * 2) / (fontSize * 0.55));
+  const emphasisScale =
+    options.emphasis === "strong" ? EMPHASIS_STRONG_SCALE : 1;
+  const captionFontSize = baseFontSize * emphasisScale;
+  const captionWeight = options.emphasis === "strong" ? 700 : 400;
+  const captionLineHeight = captionFontSize * 1.5;
+
+  const maxChars = Math.floor(
+    (sidebarWidth - padding * 2) / (captionFontSize * 0.55)
+  );
   const captionLines = wrapText(caption, maxChars);
 
   const badgeText = `${viewport.toUpperCase()} | ${colorScheme.toUpperCase()}`;
+  const badgeFontSize = baseFontSize * 0.75;
+  const beatFontSize = baseFontSize * 0.7;
+
+  let cursorY = padding + baseFontSize;
+
+  const badgeSvg = `<text x="${padding}" y="${cursorY}"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="${badgeFontSize}" font-weight="600"
+        fill="${ACCENT}" letter-spacing="1">
+    ${escapeXml(badgeText)}
+  </text>`;
+
+  cursorY += 8 * dpr;
+  const dividerY = cursorY;
+  const dividerSvg = `<line x1="${padding}" y1="${dividerY}"
+        x2="${sidebarWidth - padding}" y2="${dividerY}"
+        stroke="${ACCENT}" stroke-width="${dpr}" opacity="0.3"/>`;
+
+  cursorY += baseFontSize;
+
+  let beatSvg = "";
+  if (options.beat) {
+    cursorY += baseFontSize * 0.4;
+    beatSvg = `<text x="${padding}" y="${cursorY}"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="${beatFontSize}" font-weight="700"
+        fill="${ACCENT}" letter-spacing="2"
+        data-beat="${escapeXml(options.beat)}">
+    ${escapeXml(options.beat.toUpperCase())}
+  </text>`;
+    cursorY += baseFontSize * 0.6;
+  }
+
+  const captionSvg = captionLines
+    .map(
+      (line, i) =>
+        `<text x="${padding}" y="${cursorY + captionFontSize + captionLineHeight * i}"
+              font-family="system-ui, -apple-system, sans-serif"
+              font-size="${captionFontSize}" font-weight="${captionWeight}"
+              fill="${textColor}"
+              data-emphasis="${options.emphasis ?? "normal"}">
+        ${escapeXml(line)}
+      </text>`
+    )
+    .join("\n  ");
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sidebarWidth}" height="${sidebarHeight}">
   <rect width="100%" height="100%" fill="${bg}"/>
   <rect x="0" y="0" width="${3 * dpr}" height="100%" fill="${ACCENT}"/>
-  <text x="${padding}" y="${padding + fontSize}"
-        font-family="system-ui, -apple-system, sans-serif"
-        font-size="${fontSize * 0.75}" font-weight="600"
-        fill="${ACCENT}" letter-spacing="1">
-    ${escapeXml(badgeText)}
-  </text>
-  <line x1="${padding}" y1="${padding + fontSize + 8 * dpr}"
-        x2="${sidebarWidth - padding}" y2="${padding + fontSize + 8 * dpr}"
-        stroke="${ACCENT}" stroke-width="${dpr}" opacity="0.3"/>
-  ${captionLines
-    .map(
-      (line, i) =>
-        `<text x="${padding}" y="${padding + fontSize * 2.5 + lineHeight * i}"
-              font-family="system-ui, -apple-system, sans-serif"
-              font-size="${fontSize}" fill="${textColor}">
-        ${escapeXml(line)}
-      </text>`
-    )
-    .join("\n  ")}
+  ${badgeSvg}
+  ${dividerSvg}
+  ${beatSvg}
+  ${captionSvg}
 </svg>`;
 
   return Buffer.from(svg);
@@ -106,7 +157,13 @@ export async function annotateScreenshots(
         result.colorScheme,
         sidebarWidth,
         imgHeight,
-        dpr
+        dpr,
+        {
+          ...(screenshot.beat !== undefined ? { beat: screenshot.beat } : {}),
+          ...(screenshot.emphasis !== undefined
+            ? { emphasis: screenshot.emphasis }
+            : {}),
+        }
       );
 
       const outputPath = screenshot.rawPath.replace(/\.png$/, ".webp");

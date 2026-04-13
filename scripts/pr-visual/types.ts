@@ -62,11 +62,23 @@ export interface Scenario {
   quality?: QualityPreset;
   /** Explicit desktop viewport override. Ignored if `quality` is set. */
   viewport?: ScenarioViewport;
+  /** Free-form audience label (e.g. "Agency PM", "Client"). Stored on the
+   *  scenario and surfaced by the Story Director (#8) and Remotion intro
+   *  (#2); no direct rendering in the annotation layer yet. */
+  persona?: string;
 }
 
 export type Pacing = "quick" | "normal" | "slow" | "dramatic";
 
 export const PACING_MODES: Pacing[] = ["quick", "normal", "slow", "dramatic"];
+
+export type Beat = "setup" | "action" | "payoff" | "close";
+
+export const BEATS: Beat[] = ["setup", "action", "payoff", "close"];
+
+export type Emphasis = "normal" | "strong";
+
+export const EMPHASIS_MODES: Emphasis[] = ["normal", "strong"];
 
 export interface ScenarioStep {
   action: "navigate" | "click" | "type" | "wait" | "scroll" | "screenshot";
@@ -78,6 +90,12 @@ export interface ScenarioStep {
   /** Pacing hint governing the post-action hold time.
    *  @default "normal" */
   pacing?: Pacing;
+  /** Narrative beat classifying where this step sits in the story arc.
+   *  Triggers beat-transition chips and enforces a per-beat minimum hold. */
+  beat?: Beat;
+  /** Caption emphasis. `strong` renders as a larger title-card caption.
+   *  @default "normal" */
+  emphasis?: Emphasis;
 }
 
 export interface CaptionTiming {
@@ -85,6 +103,11 @@ export interface CaptionTiming {
   route: string;
   startMs: number;
   endMs: number;
+  /** Narrative beat for this step, if set. Used by the video annotator to
+   *  emit beat-transition chips. */
+  beat?: Beat;
+  /** Caption emphasis — governs which ASS style renders this caption. */
+  emphasis?: Emphasis;
 }
 
 export interface CaptureResult {
@@ -100,6 +123,10 @@ export interface ScreenshotResult {
   caption: string;
   rawPath: string;
   annotatedPath: string;
+  /** Narrative beat for this step, if set. */
+  beat?: Beat;
+  /** Caption emphasis — controls sidebar rendering. */
+  emphasis?: Emphasis;
 }
 
 export interface AnnotatedScreenshot {
