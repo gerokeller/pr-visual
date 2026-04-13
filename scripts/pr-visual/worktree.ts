@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as net from "node:net";
@@ -83,14 +83,11 @@ export async function createWorktree(
 
   // Create the worktree with a new branch at the current HEAD
   console.log(`  Worktree: ${worktreeRoot}`);
-  execSync(
-    `git worktree add -b ${JSON.stringify(branch)} ${JSON.stringify(worktreeRoot)} HEAD`,
-    {
-      cwd: repoRoot,
-      stdio: "pipe",
-      timeout: 30_000,
-    }
-  );
+  execFileSync("git", ["worktree", "add", "-b", branch, worktreeRoot, "HEAD"], {
+    cwd: repoRoot,
+    stdio: "pipe",
+    timeout: 30_000,
+  });
 
   // Allocate a port
   const preferredPort = config.port ?? 3000;
@@ -131,14 +128,11 @@ export function removeWorktree(
   repoRoot: string
 ): void {
   try {
-    execSync(
-      `git worktree remove --force ${JSON.stringify(worktree.rootDir)}`,
-      {
-        cwd: repoRoot,
-        stdio: "pipe",
-        timeout: 15_000,
-      }
-    );
+    execFileSync("git", ["worktree", "remove", "--force", worktree.rootDir], {
+      cwd: repoRoot,
+      stdio: "pipe",
+      timeout: 15_000,
+    });
   } catch {
     // Worktree might already be removed — clean up the directory manually
     if (fs.existsSync(worktree.rootDir)) {
@@ -148,7 +142,7 @@ export function removeWorktree(
 
   // Delete the temporary branch
   try {
-    execSync(`git branch -D ${JSON.stringify(worktree.branch)}`, {
+    execFileSync("git", ["branch", "-D", worktree.branch], {
       cwd: repoRoot,
       stdio: "pipe",
       timeout: 5_000,
