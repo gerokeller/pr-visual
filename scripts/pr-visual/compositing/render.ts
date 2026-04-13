@@ -19,6 +19,10 @@ export interface RenderArgs {
   /** Optional mobile companion video path. Staged into the bundle's public/
    *  dir under the filename in `inputProps.mobileVideoSrc`. */
   mobileVideoPath?: string;
+  /** Optional voice-over clip source paths, aligned 1:1 with
+   *  `inputProps.voiceOverClips`. Each is copied into the bundle's public/
+   *  dir under the filename referenced by the matching clip's `src`. */
+  voiceOverSourcePaths?: string[];
   /** Output directory where the composited MP4 is written. */
   outputDir: string;
   /** Composition props, must be valid per `assertValidCompositionInput`. */
@@ -70,6 +74,20 @@ export async function renderComposition(
       path.basename(args.inputProps.mobileVideoSrc)
     );
     fs.copyFileSync(args.mobileVideoPath, stagedMobilePath);
+  }
+
+  // Stage voice-over clips alongside the videos.
+  if (
+    args.voiceOverSourcePaths &&
+    args.inputProps.voiceOverClips &&
+    args.voiceOverSourcePaths.length === args.inputProps.voiceOverClips.length
+  ) {
+    for (let i = 0; i < args.voiceOverSourcePaths.length; i++) {
+      const src = args.voiceOverSourcePaths[i]!;
+      const clip = args.inputProps.voiceOverClips[i]!;
+      const stagedPath = path.join(publicDir, path.basename(clip.src));
+      fs.copyFileSync(src, stagedPath);
+    }
   }
 
   console.log("[compositing] selecting composition...");

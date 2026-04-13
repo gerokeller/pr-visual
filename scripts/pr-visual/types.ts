@@ -270,6 +270,27 @@ export interface ProjectConfig {
    *  project root). Each module exports named functions shaped as
    *  `(page: Page, ...args: unknown[]) => Promise<void> | void`. */
   poms?: Record<string, string>;
+
+  /** Optional voice-over configuration. When `enabled` is true, step
+   *  captions are synthesized to audio clips and mixed into the Remotion
+   *  composition. Implies `video.compositing: "remotion"`. */
+  voiceover?: VoiceOverConfig;
+}
+
+export type TtsProviderName = "piper" | "google" | "openai" | "say";
+
+export interface VoiceOverConfig {
+  /** Master switch. Defaults to `false`. */
+  enabled?: boolean;
+  /** Explicit provider override. When omitted, the first available
+   *  provider in the detection order (piper → google → openai → say) wins. */
+  provider?: TtsProviderName;
+  /** Provider-specific voice name (e.g. `en-US-Neural2-F`, `alloy`,
+   *  `Samantha`). Uses a sensible default per provider when omitted. */
+  voice?: string;
+  /** Audio cache directory (relative to the project root).
+   *  @default ".pr-visual/tts" */
+  cacheDir?: string;
 }
 
 export interface VideoConfig {

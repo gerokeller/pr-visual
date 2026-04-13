@@ -7,7 +7,7 @@ Each run is isolated in a **git worktree** with its own port and **namespaced re
 ## Prerequisites
 
 - Node.js 20+
-- [ffmpeg](https://ffmpeg.org/) — `brew install ffmpeg` (optional — needed for video captions)
+- [ffmpeg](https://ffmpeg.org/) — `brew install ffmpeg` (optional — needed for video captions and voice-over transcoding)
 - [GitHub CLI](https://cli.github.com/) — `brew install gh`
 - Chromium (installed automatically via Playwright on `postinstall`)
 
@@ -208,6 +208,10 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `auth.profiles` | `Record<string, string>` | — | Named profiles → relative storage state file paths |
 | `auth.tokenGenerator` | `LifecycleStep` | — | Optional command run after `setup` and before `devServer` to refresh storage state |
 | `poms` | `Record<string, string>` | — | Page Object Model registry. Keys are referenced from `pom` scenario steps (see [Page Object Models](#page-object-models)). Values are module paths relative to the project root. |
+| `voiceover.enabled` | `boolean` | `false` | Synthesize per-step audio and mix it into the composited MP4 (see [Voice-over](#voice-over)). Implies `compositing: "remotion"`. |
+| `voiceover.provider` | `"piper" \| "google" \| "openai" \| "say"` | — | Explicit provider. Defaults to the first available in detection order. |
+| `voiceover.voice` | `string` | (per-provider) | Provider-specific voice name (e.g. `en-US-Neural2-F`, `alloy`, `Samantha`). |
+| `voiceover.cacheDir` | `string` | `".pr-visual/tts"` | Audio cache directory (relative to project root). Content-hash keyed; re-runs with unchanged captions skip synthesis. |
 
 ### Minimal config examples
 
@@ -720,6 +724,57 @@ pre-capture errors instead of runtime crashes deep in the capture loop.
   Those overlays are injected at the call site in pr-visual's step
   executor, not globally. If you want a ripple on a POM-internal click,
   add an explicit `click` step for that interaction instead.
+
+## Voice-over
+
+Step captions become narration in the composited MP4. Each caption is
+synthesized to an MP3 and mixed into the Remotion composition, anchored to
+the start of that step on the video timeline. Setting `voiceover.enabled:
+true` also implies `compositing: "remotion"`.
+
+```typescript
+export default {
+  devServer: { command: "npm run dev" },
+  voiceover: {
+    enabled: true,
+    // Leave `provider` / `voice` out to auto-detect the first available.
+  },
+} satisfies ProjectConfig;
+```
+
+### Provider chain
+
+Detection order (first available wins — the MP4 uses one provider throughout):
+
+1. **Piper** — local neural TTS, offline, no account. Requires `piper` on
+   `PATH` and a voice model. Point `PIPER_MODEL` at an `.onnx` file, or
+   drop one into `~/.cache/piper/voices/`.
+2. **Google Cloud TTS** — OAuth via `gcloud`. Requires `gcloud auth
+   application-default login`. Default voice `en-US-Neural2-F`.
+3. **OpenAI TTS** — `OPENAI_API_KEY` env var. Default voice `alloy`.
+4. **macOS `say`** — always available on macOS. Default voice `Samantha`.
+
+Override via `voiceover.provider`; that provider is then used regardless of
+detection order. Per-clip synthesis failures log a warning and skip that
+step — the rest of the MP4 still narrates.
+
+If *no* provider is available, the run fails with an explicit error listing
+the install options.
+
+### Caching
+
+Clips are cached at `.pr-visual/tts/step-NN-<hash>.mp3`, keyed by
+`sha256(provider + caption text)`. Re-running a scenario with unchanged
+captions is essentially free. Switching provider invalidates the cache for
+that step (the hash changes).
+
+`npx pr-visual init` adds `.pr-visual/tts/` to `.gitignore` automatically.
+
+### ffmpeg
+
+Piper and `say` emit WAV/AIFF and use `ffmpeg` / `ffprobe` to transcode to
+MP3 and measure duration. pr-visual already expects ffmpeg for subtitle
+burning, so there's no new prerequisite.
 
 ## CLI commands
 
