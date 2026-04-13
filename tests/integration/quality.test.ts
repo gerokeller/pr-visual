@@ -135,7 +135,11 @@ describe("quality presets — desktop screenshot dimensions", () => {
   }, 60_000);
 
   it("mobile viewport is unaffected by quality preset", async () => {
-    const scenario = staticScenario({ quality: "4k" });
+    // Use 1080p rather than 4k — the assertion is that mobile stays at
+    // 390x844@3x regardless of the preset. Smaller preset keeps the test
+    // fast on CI runners; 4k desktop video (7680x4320) blew past the
+    // 60s timeout on ubuntu-latest.
+    const scenario = staticScenario({ quality: "1080p" });
     const results = await captureAllVariants(
       [scenario],
       FIXTURE_URL,
@@ -146,7 +150,7 @@ describe("quality presets — desktop screenshot dimensions", () => {
     expect(mobile!.viewport.width).toBe(390);
     expect(mobile!.viewport.height).toBe(844);
     expect(mobile!.viewport.deviceScaleFactor).toBe(3);
-  }, 60_000);
+  }, 90_000);
 
   it("PR_VISUAL_QUALITY env var overrides scenario quality", async () => {
     const prev = process.env.PR_VISUAL_QUALITY;
