@@ -194,6 +194,12 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `overlays.cursor` | `boolean` | `false` | Inject a visible custom cursor during capture (see [Interaction overlays](#interaction-overlays)) |
 | `overlays.clicks` | `boolean` | `false` | Emit a ripple + center dot at each click's coordinates |
 | `overlays.highlights` | `boolean` | `false` | Enable the `highlight` scenario step action (pulsing glow + dimmed backdrop) |
+| `video.compositing` | `"none" \| "remotion"` | `"none"` | Run the recorded clip through a Remotion composition (see [Video production](#video-production)) |
+| `video.brandColor` | `string` | `"#3b82f6"` | Brand accent color for intro/outro/caption-pill chrome |
+| `video.category` | `string` | — | Optional category label rendered as a glassmorphism badge |
+| `video.sprintLabel` | `string` | — | Optional sprint / release label rendered subtly in the intro |
+| `video.orgName` | `string` | — | Optional org name rendered in the outro footer |
+| `video.highlights` | `string[]` | — | Optional bullets rendered as a "Key Highlights" card in the outro |
 
 ### Minimal config examples
 
@@ -413,6 +419,56 @@ The highlight runs for `duration` ms; the scenario's pacing hold starts after cl
 Overlays are injected into the page during capture (unlike the post-capture sidebar and ASS caption layers), so they appear in the recorded video at the right moment. The trade-off: an active cursor or highlight will be visible in screenshots taken right after a `navigate`. If you want clean screenshots alongside an overlay-rich video, leave `overlays.cursor` off.
 
 Mobile viewports automatically use a touch-style cursor and tap-ring animations.
+
+## Video production
+
+By default the captioned MP4 is the final video artifact. Opt in to a polished
+Remotion composition (animated intro, crossfades, glassmorphism caption pill,
+outro with step summary) per scenario or project-wide:
+
+```typescript
+export default {
+  devServer: { command: "npm run dev" },
+  video: {
+    compositing: "remotion",
+    brandColor: "#3b82f6",
+    category: "Checkout",
+    sprintLabel: "Sprint 12",
+    orgName: "Acme Co",
+    highlights: ["Faster checkout", "Cleaner cart"],
+  },
+} satisfies ProjectConfig;
+```
+
+### Optional peer dependencies
+
+The Remotion stack is intentionally **not** a baseline dependency — `npm i pr-visual`
+stays small for users who only need captioned recordings. Install the peer deps
+when you want compositing:
+
+```bash
+npm i -D remotion @remotion/bundler @remotion/renderer react react-dom
+```
+
+If `video.compositing: "remotion"` is set but the peer deps aren't installed,
+pr-visual prints a clear warning and falls back to the captioned MP4. The run
+still succeeds.
+
+### What gets composited
+
+- Compositing runs on the **desktop + light** variant only. Mobile composite
+  layouts arrive in [#6](https://github.com/gerokeller/pr-visual/issues/6); the
+  other three variants stay raw.
+- Output is written next to the captioned MP4 as `<scenario>-composited.mp4`
+  (H.264, CRF 16).
+- When a composited video exists, the PR comment uses it for the
+  desktop+light slot; other variants keep the captioned MP4.
+
+### Adaptive intro/outro length
+
+Intro and outro durations scale with the title + description word count and
+the number of annotated steps (reading speed 3 w/s), clamped to sensible
+bounds (intro 3-8s, outro 4-12s).
 
 ## CLI commands
 

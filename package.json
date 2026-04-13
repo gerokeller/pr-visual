@@ -59,5 +59,29 @@
     "@types/node": "^25.6.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
+  },
+  "peerDependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "remotion": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@remotion/bundler": {
+      "optional": true
+    },
+    "@remotion/renderer": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "remotion": {
+      "optional": true
+    }
   }
 }
