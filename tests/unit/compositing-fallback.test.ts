@@ -50,6 +50,24 @@ describe("composeVideo", () => {
     expect(out).toEqual({ outputPath: null, fellBack: false });
   });
 
+  it("mobile.enabled triggers the compositing path even without compositing: 'remotion'", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // Peer deps are not installed in CI/local — we expect the fallback
+    // warning to fire, proving the code path was entered.
+    const out = await composeVideo({
+      project: {
+        ...baseProject,
+        video: { mobile: { enabled: true } },
+      },
+      sourceVideoPath: "/tmp/x.mp4",
+      outputDir: "/tmp",
+      result,
+      scenario,
+    });
+    expect(out).toEqual({ outputPath: null, fellBack: true });
+    expect(warn).toHaveBeenCalled();
+  });
+
   it("warns and falls back when remotion peer deps are missing", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const out = await composeVideo({

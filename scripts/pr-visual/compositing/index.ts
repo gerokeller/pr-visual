@@ -21,9 +21,20 @@ export const MISSING_DEPS_MESSAGE =
   `falling back to the captioned MP4 path.\n` +
   `  Install with: npm i -D ${REQUIRED_PEER_DEPS.join(" ")}`;
 
+export interface ComposeMobile {
+  /** Path to the mobile pass `.webm`. */
+  videoPath: string;
+  /** Mobile recording dimensions in encoded pixels (viewport x DSF). */
+  width: number;
+  height: number;
+  /** Composition layout. */
+  layout: "side-by-side" | "pip" | "sequential";
+}
+
 export interface ComposeArgs {
   /** Project configuration. Compositing only runs when
-   *  `project.video?.compositing === "remotion"`. */
+   *  `project.video?.compositing === "remotion"` OR when a `mobile` companion
+   *  is supplied (mobile.enabled implies compositing). */
   project: ProjectConfig;
   /** Source video path (the captioned MP4 from the existing pipeline). */
   sourceVideoPath: string;
@@ -33,6 +44,9 @@ export interface ComposeArgs {
   result: CaptureResult;
   /** Scenario the variant came from. */
   scenario: Scenario;
+  /** Optional mobile companion produced by `runMobilePass`. When present,
+   *  the composition includes mobile chrome per the configured layout. */
+  mobile?: ComposeMobile;
 }
 
 export interface ComposeResult {
@@ -73,7 +87,12 @@ function probePeerDep(name: string): boolean {
  *  `{ outputPath: null, fellBack: true }` so the caller can keep the
  *  captioned MP4 as the final artifact. */
 export async function composeVideo(args: ComposeArgs): Promise<ComposeResult> {
-  if (args.project.video?.compositing !== "remotion") {
+  // mobile.enabled implies compositing — avoids the "I enabled mobile but
+  // got no composite" gotcha.
+  const mobileImpliesCompositing = args.project.video?.mobile?.enabled === true;
+  const compositingRequested =
+    args.project.video?.compositing === "remotion" || mobileImpliesCompositing;
+  if (!compositingRequested) {
     return { outputPath: null, fellBack: false };
   }
 
@@ -92,12 +111,23 @@ export async function composeVideo(args: ComposeArgs): Promise<ComposeResult> {
     scenario: args.scenario,
     video: args.project.video,
     videoSrc: path.basename(args.sourceVideoPath),
+    ...(args.mobile
+      ? {
+          mobile: {
+            videoSrc: path.basename(args.mobile.videoPath),
+            width: args.mobile.width,
+            height: args.mobile.height,
+            layout: args.mobile.layout,
+          },
+        }
+      : {}),
   });
 
   const { outputPath } = await renderComposition({
     sourceVideoPath: args.sourceVideoPath,
     outputDir: args.outputDir,
     inputProps,
+    ...(args.mobile ? { mobileVideoPath: args.mobile.videoPath } : {}),
   });
 
   return { outputPath, fellBack: false };

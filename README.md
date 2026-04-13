@@ -200,6 +200,10 @@ This means `docker compose up -d postgres` in two parallel runs creates two inde
 | `video.sprintLabel` | `string` | — | Optional sprint / release label rendered subtly in the intro |
 | `video.orgName` | `string` | — | Optional org name rendered in the outro footer |
 | `video.highlights` | `string[]` | — | Optional bullets rendered as a "Key Highlights" card in the outro |
+| `video.mobile.enabled` | `boolean` | `false` | Run a dedicated mobile composite pass after the main matrix and composite both streams (see [Mobile composite layouts](#mobile-composite-layouts)). Implies `compositing: "remotion"`. |
+| `video.mobile.viewport` | `{ width, height }` | `{ 390, 844 }` | Mobile pass viewport |
+| `video.mobile.deviceScaleFactor` | `number` | `3` | Mobile pass DPR |
+| `video.mobile.layout` | `"side-by-side" \| "pip" \| "sequential"` | `"side-by-side"` | Composition layout |
 
 ### Minimal config examples
 
@@ -469,6 +473,51 @@ still succeeds.
 Intro and outro durations scale with the title + description word count and
 the number of annotated steps (reading speed 3 w/s), clamped to sensible
 bounds (intro 3-8s, outro 4-12s).
+
+### Mobile composite layouts
+
+Set `video.mobile.enabled: true` to run a dedicated mobile pass after the main
+matrix and composite both streams into one MP4. Setting `mobile.enabled` also
+implies `compositing: "remotion"` so a single flag covers the common case.
+
+```typescript
+export default {
+  devServer: { command: "npm run dev" },
+  video: {
+    mobile: { enabled: true, layout: "side-by-side" },
+  },
+} satisfies ProjectConfig;
+```
+
+**Layouts**
+
+- `side-by-side` (default): desktop 80% + phone 20% in a stylized device frame. The canvas widens by 25% to fit both columns at near-native size.
+- `pip`: phone bottom-right over fullscreen desktop. Canvas dimensions unchanged.
+- `sequential`: desktop for the first half of the recording, phone for the second. Canvas dimensions unchanged.
+
+**Per-step mobile overrides**
+
+Scenarios can tweak the mobile pass without forking the script:
+
+```ts
+{ action: "navigate", url: "/", mobilePath: "/m", caption: "Open" }
+{ action: "click", selector: "#desktop-cta", mobileSelector: "#mobile-cta", caption: "Tap CTA" }
+{ action: "highlight", selector: "#desktop-only", mobileSkip: true, caption: "Hover hint" }
+```
+
+- `mobilePath`: rewrites the navigate URL on mobile.
+- `mobileSelector`: swaps the selector on mobile.
+- `mobileSkip`: omits the step from the mobile pass entirely.
+
+**Wall-clock cost**
+
+The mobile pass is sequential (separate browser context, fresh navigation), so
+runs with mobile compositing take **~1.8x** the wall-clock of desktop-only
+runs. The pipeline prints a heads-up when mobile compositing fires.
+
+If the mobile pass throws (selector missing, navigation fails), the
+compositing step aborts and the captioned MP4 stays as the final artifact —
+the run otherwise succeeds.
 
 ## CLI commands
 

@@ -31,6 +31,12 @@ export function DemoVideo(props: CompositionInput) {
     stepActions,
     useCanvasCaptions,
     captionBarHeight,
+    mobileVideoSrc,
+    mobileWidth,
+    mobileHeight,
+    mobileLayout,
+    desktopVideoWidth,
+    desktopVideoHeight,
   } = props;
 
   // Crossfade overlap: intro/video and video/outro each overlap by
@@ -73,7 +79,19 @@ export function DemoVideo(props: CompositionInput) {
               height: videoZoneHeight,
             }}
           >
-            <VideoWithFade videoSrc={videoSrc} />
+            <VideoWithFade
+              videoSrc={videoSrc}
+              {...(mobileVideoSrc !== undefined ? { mobileVideoSrc } : {})}
+              desktopAspect={
+                desktopVideoWidth && desktopVideoHeight
+                  ? { width: desktopVideoWidth, height: desktopVideoHeight }
+                  : { width, height: videoZoneHeight }
+              }
+              {...(mobileWidth && mobileHeight
+                ? { mobileAspect: { width: mobileWidth, height: mobileHeight } }
+                : {})}
+              {...(mobileLayout !== undefined ? { layout: mobileLayout } : {})}
+            />
           </div>
 
           {hasCaptionData &&

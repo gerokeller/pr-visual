@@ -53,6 +53,13 @@ export interface CompositionInput {
   stepBeats?: (Beat | null)[];
   stepEmphases?: (Emphasis | null)[];
   stepActions?: string[];
+  /** Mobile companion video, served from the bundle's public/ dir. */
+  mobileVideoSrc?: string;
+  /** Mobile recording dimensions in encoded pixels (viewport x DSF). */
+  mobileWidth?: number;
+  mobileHeight?: number;
+  /** Composition layout for the mobile companion. */
+  mobileLayout?: "side-by-side" | "pip" | "sequential";
 }
 
 /** Runtime sanity check used by the renderer entry. Throws on missing
