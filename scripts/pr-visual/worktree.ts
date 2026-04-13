@@ -83,15 +83,11 @@ export async function createWorktree(
 
   // Create the worktree with a new branch at the current HEAD
   console.log(`  Worktree: ${worktreeRoot}`);
-  execFileSync(
-    "git",
-    ["worktree", "add", "-b", branch, worktreeRoot, "HEAD"],
-    {
-      cwd: repoRoot,
-      stdio: "pipe",
-      timeout: 30_000,
-    }
-  );
+  execFileSync("git", ["worktree", "add", "-b", branch, worktreeRoot, "HEAD"], {
+    cwd: repoRoot,
+    stdio: "pipe",
+    timeout: 30_000,
+  });
 
   // Allocate a port
   const preferredPort = config.port ?? 3000;
@@ -132,15 +128,11 @@ export function removeWorktree(
   repoRoot: string
 ): void {
   try {
-    execFileSync(
-      "git",
-      ["worktree", "remove", "--force", worktree.rootDir],
-      {
-        cwd: repoRoot,
-        stdio: "pipe",
-        timeout: 15_000,
-      }
-    );
+    execFileSync("git", ["worktree", "remove", "--force", worktree.rootDir], {
+      cwd: repoRoot,
+      stdio: "pipe",
+      timeout: 15_000,
+    });
   } catch {
     // Worktree might already be removed — clean up the directory manually
     if (fs.existsSync(worktree.rootDir)) {
