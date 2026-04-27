@@ -55,10 +55,10 @@
     "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.11",
+    "@biomejs/biome": "2.4.13",
     "@types/node": "^25.6.0",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.4"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   },
   "peerDependencies": {
     "@remotion/bundler": "^4.0.0",
