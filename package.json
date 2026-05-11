@@ -50,7 +50,7 @@
     "url": "https://github.com/gerokeller/pr-visual/issues"
   },
   "dependencies": {
-    "playwright": "^1.59.1",
+    "playwright": "^1.60.0",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0"
   },
