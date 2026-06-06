@@ -24,7 +24,7 @@ jobs:
     # and Node 20 preinstalled — skips the slow apt-get font install that
     # `playwright install-deps` would otherwise pull in on every run.
     container:
-      image: mcr.microsoft.com/playwright:v1.59.1-jammy
+      image: mcr.microsoft.com/playwright:v1.60.0-jammy
 
     steps:
       - name: Checkout
